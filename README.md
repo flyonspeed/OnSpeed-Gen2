@@ -17,7 +17,7 @@ The current Gen2 device is avionics independent. The current features include:
   
     Can be wired directly into the aircraft's audio panel.
   
-    It logs all data at 50Hz to the onboard SD card and provides and experimental display via its Wifi interface.
+    It logs all data at 50Hz to the onboard SD card and provides an experimental AOA display via its Wifi interface.
   
     Logs can also be downloaded via Wifi.
 
