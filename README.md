@@ -13,7 +13,7 @@ The current Gen2 device is avionics independent. The current features include:
   
     Receives, parses and logs flight test boom data for testing purposes
   
-    Calculates a differential pressure based calibrated Angle of Attack which is then uses to generate the OnSpeed tones.
+    Calculates a differential pressure based calibrated Angle of Attack and uses it to generate the OnSpeed tones.
   
     Can be wired directly into the aircraft's audio panel.
   
