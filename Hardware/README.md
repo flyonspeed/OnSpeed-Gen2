@@ -31,21 +31,21 @@ Beswick Engineering\
 MCACS-1012-1132 (special order, call Beswick to order at 603-433-1188)\
 http://catalog.beswick.com/#WORKFLOW;PRODUCT,MCACS,FILTER_FITTINGS
 
-1x sd card (some cards are just not fast enough, we tested this oen and it works)\
+1x SD card (some cards have a huge write latency, we tested this one and it works)\
 SanDisk Ultra 32GB microSDHC UHS-I card\
 https://www.amazon.com/dp/B073JWXGNT/
 
 
-1/16" ID hose (may need to pick softer hoses)\
-POLYURETHANE TUBING FOR AIR AND WATER 1/16" ID, 1/8" OD, CLEAR YELLOW, 25 FT. LENGTH\
-McMaster 5648K67\
-https://www.mcmaster.com/5648K67
+1/16" ID hose (for static pressure sensor)\
+UV-Resistant Soft Versilon PVC Plastic Tubing for Air and Water, 1/16" ID, 1/8" OD, Opaque Black
+McMaster 5255k31\
+https://www.mcmaster.com/5255k31
 
 
-3/32" ID hose (may need to pick softer hoses)\
-POLYURETHANE TUBING FOR AIR AND WATER 3/32" ID, 5/32" OD, CLEAR YELLOW, 25 FT. LENGTH\
-McMaster 5648K68\
-https://www.mcmaster.com/5648K68
+3/32" ID hose (for differential pressure sensors)\
+UV-Resistant Soft Versilon PVC Plastic Tubing for Air and Water, 3/32" ID, 5/32" OD, Opaque Black
+McMaster 5255k12\
+https://www.mcmaster.com/5255k12
 
 
 3x PEM nuts\
