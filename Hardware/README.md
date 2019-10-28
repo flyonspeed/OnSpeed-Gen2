@@ -30,7 +30,7 @@ https://www.mcmaster.com/#catalog/2844K12
 
 1x barb manifold
 
-Beswick Engineering
+Beswick Engineering\
 MCACS-1012-1132 (special order, call Beswick to order at 603-433-1188)
 http://catalog.beswick.com/#WORKFLOW;PRODUCT,MCACS,FILTER_FITTINGS
 
