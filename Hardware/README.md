@@ -31,19 +31,19 @@ http://catalog.beswick.com/#WORKFLOW;PRODUCT,MCACS,FILTER_FITTINGS
 
 1x sd card (some cards are just not fast enough, we tested this oen and it works)\
 SanDisk Ultra 32GB microSDHC UHS-I card\
-https://www.amazon.com/dp/B073JWXGNT/ref=cm_sw_em_r_mt_dp_U_2BrJCbAJ3NTWJ
+https://www.amazon.com/dp/B073JWXGNT/
 
 
 1/16" ID hose (may need to pick softer hoses)\
 POLYURETHANE TUBING FOR AIR AND WATER 1/16" ID, 1/8" OD, CLEAR YELLOW, 25 FT. LENGTH\
 McMaster 5648K67\
-https://www.mcmaster.com/#catalog/5648K67
+https://www.mcmaster.com/5648K67
 
 
 3/32" ID hose (may need to pick softer hoses)\
 POLYURETHANE TUBING FOR AIR AND WATER 3/32" ID, 5/32" OD, CLEAR YELLOW, 25 FT. LENGTH\
 McMaster 5648K68\
-https://www.mcmaster.com/#catalog/5648K68
+https://www.mcmaster.com/5648K68
 
 
 3x PEM nuts\
