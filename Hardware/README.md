@@ -5,6 +5,8 @@ Hardware components list and sources:
 Shared project on Mouser. Includes all the electronic components.\
 https://www.mouser.com/ProjectManager/ProjectDetail.aspx?AccessID=c6a6482de2
 
+PCB fabricated by PcbWay.com (affordable and quick turnaround circuit boards)\
+https://www.pcbway.com/project/shareproject/OnSpeed_Gen_2_v3_0.html
 
 Enclosure:\
 Box Enclosures B2-080BK
