@@ -2,7 +2,6 @@
 
 // TODO
 // calibrate static pressure
-// SD card formatter
 // watchdog
 // run in Gen1 mode with Efis data (fix OSH code)
 // calibration run counter
@@ -32,7 +31,7 @@
 //#define SENSORDEBUG // show sensor debug
 //#define EFISDATADEBUG // show efis data debug
 //#define BOOMDATADEBUG  // show boom data debug
-//#define SHOW_SERIAL_DEBUG // Output tone related serial debug infomation.
+#define SHOW_SERIAL_DEBUG // Output tone related serial debug infomation.
 //#define SDCARDDEBUG  // show SD writing debug info
 
 
@@ -86,7 +85,7 @@ AudioConnection          patchCord8(ampLeft, 0, dacs, 0);
 AudioConnection          patchCord9(ampRight, 0, dacs, 1);
 
 
-#define VERSION         "v2.1.6"  // last modified 10/15/2019 by Lenny
+#define VERSION         "v2.1.7"  // last modified 10/28/2019 by Lenny
 
 // box functionality config
 //String DATASOURCE = "TESTPOT"; // potentiometer wiper on Pin 10 of DSUB 15 connector
@@ -107,7 +106,7 @@ String DATASOURCE = "SENSORS";
 #define MUTE_AUDIO_UNDER_IAS  40
 
 // max possible AOA value
-#define AOA_MAX_VALUE         20
+#define AOA_MAX_VALUE         30  // was 20 befofe, but in a sudden stall when the nose quickly goes up, AOA gets larger very quickly and then onspeed goes silent right as the aircraft stalls
 
  // min possible AOA value
 #define AOA_MIN_VALUE         -20
@@ -144,6 +143,9 @@ String DATASOURCE = "SENSORS";
 #define SOLID_TONE            2
 #define TONE_OFF              3
 #define STARTUP_TONES_DELAY   120
+#define RANGESWEEP_LOW_AOA    6
+#define RANGESWEEP_HIGH_AOA   15
+#define RANGESWEEP_STEP       .1 // degrees AOA
 
 // IMU defines
 #define LSM9DS1_AccelGyro 0x6B
@@ -234,7 +236,7 @@ float percentLift=0.0;                     // normalized angle of attack, or lif
 unsigned int ALT = 0;                 // hold ALT (only used for debuging)
 float ASI = 0.0;                          // live Air Speed Indicated
 float Palt=0.00;                          // pressure altitude
-float currentRangeSweepValue=0.0;
+float currentRangeSweepValue=RANGESWEEP_LOW_AOA;
 //GaussianAverage PfwdAvg = GaussianAverage(PRESSURE_HISTORY_MAX);
 //GaussianAverage P45Avg = GaussianAverage(PRESSURE_HISTORY_MAX);
 RunningMedian PfwdDivP45Median(PRESSURE_HISTORY_MAX);
@@ -256,9 +258,6 @@ int serialCmdBufferSize = 0;        // usb serial command buffer size
 char serialCmdBuffer[51];       // usb serial command buffer
 int serialBufferSize = 0;    // serial buffer size (boom data)
 char serialBuffer[51];       // serial 1  buffer (boom data)
-
-
-
 
 char listfileFileName[14];      // file name for sd card file listing operations
 bool listfileIsDirectory;      
@@ -307,7 +306,6 @@ unsigned long looptime=millis();
 
 void setup() {
  delay(2000); // let the aircraft's audio panel boot up
-
 
   AudioMemory(16);
 // volume control
@@ -452,7 +450,7 @@ mixer1.gain(2,10); // amplify channel 2 (voice)
               } else
                     if (DATASOURCE=="RANGESWEEP")
                     {
-                    RangeSweepTimer.begin(RangeSweep,100000); // 100ms
+                    RangeSweepTimer.begin(RangeSweep,200000); // 100ms
                     } else
                           
                           if (DATASOURCE=="REPLAYLOGFILE")
@@ -537,13 +535,14 @@ void tonePlayHandler(){
 //float onSpeedAOA=0.00;
 //float stallWarningAOA=0.00;
 
-void updateTones() {
+void updateTones()
+{
   if(ASI <= MUTE_AUDIO_UNDER_IAS) {
-#ifdef SHOW_SERIAL_DEBUG    
+  #ifdef SHOW_SERIAL_DEBUG    
   // show audio muted and debug info.
-  //sprintf(tempBuf, "AUDIO MUTED: Airspeed to low. Min:%i ASI:%.2f",MUTE_AUDIO_UNDER_IAS, ASI);
-  //Serial.println(tempBuf);
-#endif 
+  sprintf(tempBuf, "AUDIO MUTED: Airspeed to low. Min:%i ASI:%.2f",MUTE_AUDIO_UNDER_IAS, ASI);
+  Serial.println(tempBuf);
+  #endif 
   toneMode = TONE_OFF;
   setPPSTone(20); // set the update rate to LOW_TONE_PPS_MAX if no tone is playing to pick up a pulsed tone quickly
   return;
@@ -554,27 +553,30 @@ void updateTones() {
     highTone = true;
     setPPSTone(HIGH_TONE_STALL_PPS);
     toneMode = PULSE_TONE;
-  } else if(AOA > (onSpeedAOA+ONSPEED_BAND_HIGH)) {
-    // play HIGH tone at Pulse Rate 1.5 PPS to 6.2 PPS (depending on AOA value)
-    highTone = true;
-    toneMode = PULSE_TONE;
-    NewValue=mapfloat(AOA,onSpeedAOA+ONSPEED_BAND_HIGH,stallWarningAOA,HIGH_TONE_PPS_MIN,HIGH_TONE_PPS_MAX);
-    setPPSTone(NewValue);
-  } else if(AOA >= (onSpeedAOA-ONSPEED_BAND_LOW)) {
-    // play a steady LOW tone
-    highTone = false;
-    toneMode = SOLID_TONE;
-    setPPSTone(20);
-  } else if(AOA >= LDmaxAOA && LDmaxAOA<onSpeedAOA) {  // if L/D max AOA is higher than OnSpeed, skip the low tone. This usually happens with full flaps.
-    toneMode = PULSE_TONE;
-    highTone = false;
-    // play LOW tone at Pulse Rate 1.5 PPS to 8.2 PPS (depending on AOA value)
-    NewValue=mapfloat(AOA,LDmaxAOA,onSpeedAOA-ONSPEED_BAND_LOW,LOW_TONE_PPS_MIN,LOW_TONE_PPS_MAX);
-    setPPSTone(NewValue);
-  } else {
-    toneMode = TONE_OFF;
-    setPPSTone(20);   
-  }    
+    } else if(AOA > (onSpeedAOA+ONSPEED_BAND_HIGH))
+            {
+            // play HIGH tone at Pulse Rate 1.5 PPS to 6.2 PPS (depending on AOA value)
+            highTone = true;
+            toneMode = PULSE_TONE;
+            NewValue=mapfloat(AOA,onSpeedAOA+ONSPEED_BAND_HIGH,stallWarningAOA,HIGH_TONE_PPS_MIN,HIGH_TONE_PPS_MAX);
+            setPPSTone(NewValue);
+            } else if(AOA >= (onSpeedAOA-ONSPEED_BAND_LOW))
+                   {
+                    // play a steady LOW tone
+                    highTone = false;
+                    toneMode = SOLID_TONE;
+                    setPPSTone(20);
+                   } else if (AOA >= LDmaxAOA && LDmaxAOA<onSpeedAOA)
+                          {  // if L/D max AOA is higher than OnSpeed, skip the low tone. This usually happens with full flaps.
+                          toneMode = PULSE_TONE;
+                          highTone = false;
+                          // play LOW tone at Pulse Rate 1.5 PPS to 8.2 PPS (depending on AOA value)
+                          NewValue=mapfloat(AOA,LDmaxAOA,onSpeedAOA-ONSPEED_BAND_LOW,LOW_TONE_PPS_MIN,LOW_TONE_PPS_MAX);
+                          setPPSTone(NewValue);
+                          } else {                          
+                                 toneMode = TONE_OFF;
+                                 setPPSTone(20);   
+                                 }    
 }
 
 void setPPSTone(float newPPS) {
@@ -1515,8 +1517,8 @@ void setFrequencytone(uint32_t frequency)
  noInterrupts();
  float pulse_delay= 1000/pps;
  interrupts();
- ToneTimer.update((int)(pulse_delay*1000));
- //Serial.printf("millis: %i, freq update: %i, pps: %0.2f\n",millis(),pulse_delay*1000,pps);
+ToneTimer.begin(tonePlayHandler,(int)(pulse_delay*1000));
+// Serial.printf("millis: %i, freq update: %i, pps: %0.2f\n",millis(),(int)(pulse_delay*1000),pps);
 #ifdef SHOW_SERIAL_DEBUG
   Serial.print(millis());
   Serial.print(", AOA: ");
@@ -1541,7 +1543,7 @@ void setFrequencytone(uint32_t frequency)
     AudioNoInterrupts();
     sinewave1.amplitude(0);
     sinewave_solid.amplitude(0); 
-    AudioInterrupts();   
+    AudioInterrupts();
     return;
     }
     
@@ -1606,14 +1608,13 @@ void setFrequencytone(uint32_t frequency)
       envelope1.noteOff();
       envelope1.attack(pulse_delay*0.088);
       envelope1.hold(pulse_delay*0.28);
-      envelope1.decay(pulse_delay*.088); // total of the above multipliers must be below .5, otherwise enelopes overlap
+      envelope1.decay(pulse_delay*.088); // total of the above multipliers must be below .5, otherwise envelopes overlap
       envelope1.sustain(0);
       envelope1.releaseNoteOn(0);
       envelope1.noteOn();
       AudioInterrupts();
       }     
   toneFreq = frequency;
-  
 }
 
 
@@ -1848,7 +1849,6 @@ readVolume(); // update volume control
 void SensorWriteSD()
 {
 //Serial.println();Serial.print("loopcount: "); Serial.println(loopcount);
-
 #ifdef SDCARD
     
     if (sdLogging && sensorCacheCount>0)
@@ -1866,9 +1866,6 @@ void SensorWriteSD()
         unsigned long closeTime;
         #endif
         
-        #ifdef SHOW_SERIAL_DEBUG
-        unsigned long serialtimerstart=micros();
-        #endif
         //move sensor cache into write cache
         noInterrupts();
         memcpy(SDwriteCache,sensorCache,sensorCacheCount);
@@ -1962,8 +1959,9 @@ Serial.printf("TestAOA: %0.2f, AOA: %0.2f\n",testAOA, AOA);
 
 void RangeSweep()
 {
-if (currentRangeSweepValue<=16-.1) currentRangeSweepValue+=0.1; else currentRangeSweepValue=2;
+if (currentRangeSweepValue<RANGESWEEP_HIGH_AOA) currentRangeSweepValue+=RANGESWEEP_STEP; else currentRangeSweepValue=RANGESWEEP_LOW_AOA;
 AOA=currentRangeSweepValue;
+setAOApoints(0); // flaps down
 ASI=50; // to turn on the tones
 updateTones();
 }
