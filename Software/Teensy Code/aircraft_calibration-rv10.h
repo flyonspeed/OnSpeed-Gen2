@@ -10,16 +10,27 @@ int flapDegrees[]={0,15,30};
 int flapPotPositions[]={675,391,191};
 
 // volume position
-//#define VOLUME_HIGH_ANALOG           1023
-//#define VOLUME_LOW_ANALOG         1
+#define VOLUME_HIGH_ANALOG           1023
+#define VOLUME_LOW_ANALOG         1
 
 // AOA setpoints for the different flap settings. Number of points must match number of flap position settings
-float flapLDMAXAOA[]=    {8.446,10.421,13.814};// !L/Dmax out of range here
-float flapONSPEEDAOA[]=  {9.333,11.789,13.246};
+float flapLDMAXAOA[]=    {7.122,8.126,9.0};// !L/Dmax out of range here
+float flapONSPEEDFASTAOA[]=  {7.919,9.09,10.41};
+//float flapONSPEEDAOA[]=  {9.333,11.789,13.246};
+float flapONSPEEDSLOWAOA[]=  {9.458,10.91,12.47};
 float flapSTALLWARNAOA[]={13.579,16.195,19.749};
 
-float ONSPEED_BAND_HIGH=1; //degrees AOA slop for the solid tone, low airspeed, high angle
-float ONSPEED_BAND_LOW=0.5; //degrees AOA slop for the solid tone, high airspeed, low angle
+// RV-10 aircraft & probe specific AOA curve calibration functions
+#define FLAPSUP_AOA_CURVE(x)     -28.208*x*x + 85.301*x - 49.941; // absolute AOA derived from horsehoe GPS test on 9/25/2019, N311LZ
+#define FLAPSMIDDLE_AOA_CURVE(x) -20.679*x*x + 71.473*x - 42.295;
+#define FLAPSDOWN_AOA_CURVE(x)   -30.287*x*x + 101.07*x - 61.84;
+
+// RV-10 test boom calibration curves
+#define BOOM_ALPHA_CALC(x)      0.0264*x -105.837;
+#define BOOM_BETA_CALC(x)       0.0242*x -95.7504;
+#define BOOM_STATIC_CALC(x)     0.00012207*(x - 1638)*1000; // millibars
+#define BOOM_DYNAMIC_CALC(x)    (0.01525902*(x - 1638)) - 100; // millibars
+
 
 #define CAS_CURVE(x)  1.0286*x - 1.5711; // airspeed calibration curve, flight test derived
 

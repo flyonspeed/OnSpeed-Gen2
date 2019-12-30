@@ -17,27 +17,124 @@
 // OnSpeed Gen2 Teensy 3.6 code
 // More details at flyOnSpeed.org
 
+#define VERSION         "v2.1.19"  // last modified 12/27/2019 by Lenny (added 3D audio. Define and audio curve in aircraft config file)
+
 // hardware config
 #define SDCARD // comment out to disable SD card logging
 #define IMU  // use inertial sensor board
 //#define BOOM // read and log real-time test boom data via Serial 1 TTL
 #define WIFI // use wifi board (wireless data download)
 #define BARO // use baro sensor (v1 hardware doesn't have one)
-#define SERIALEFISDATA  // read and log serial data (ahrs/aoa/airspeed/altitude data from Dynon EFIS D10, D100, D180, Skyview and Garmin G5)e
-//#define VOLUMECONTROL // control audio volume with potentiometer, disable if not installed
-// connect Efis outout to pin7 of the OnSpeed DB15 connector via a 3.3V! Serial to TTL adapter. (Nulsom NS-RS232 tested)
+#define SERIALEFISDATA  // read and log serial data via  Serial 3 RS232 (ahrs/aoa/airspeed/altitude data from Dynon EFIS D10, D100, D180, Skyview and Garmin G5)
+
 
 // debug config. Comment out any of them to disable serial debug output.
 //#define SENSORDEBUG // show sensor debug
 //#define EFISDATADEBUG // show efis data debug
 //#define BOOMDATADEBUG  // show boom data debug
-#define SHOW_SERIAL_DEBUG // Output tone related serial debug infomation.
+//#define SHOW_SERIAL_DEBUG // Output tone related serial debug infomation.
 //#define SDCARDDEBUG  // show SD writing debug info
+//#define VOLUMEDEBUG // show volume setting debug
+//#define AUDIO_3D_DEBUG // show 3d audio values vs efisLateralG
+
+#include "aircraft_calibration-rv4.h"
+
+// box functionality config
+//String DATASOURCE = "TESTPOT"; // potentiometer wiper on Pin 10 of DSUB 15 connector
+//String DATASOURCE = "RANGESWEEP";
+String DATASOURCE = "SENSORS";
+//String DATASOURCE = "REPLAYLOGFILE"; // comment out #SDCARD below when replaying log files! [logfile.csv]
+
+// smoothing windows
+#define AOA_SMOOTHING       20  // AOA Gaussian smoothing window (originally 15)
+#define PRESSURE_SMOOTHING  15 // median filter window
+
+// interval timers
+#define SENSOR_INTERVAL 20000  // microsecond interval for sensor read (50hz)
+#define DISPLAY_INTERVAL 100000 // 100 msec (10Hz)
+
+// Min airspeed in knots before the audio tone is turned on
+// This is useful because if your on the ground you don't need a beeping in your ear.
+#define MUTE_AUDIO_UNDER_IAS  25
+
+// max possible AOA value
+#define AOA_MAX_VALUE         40  // was 20 before, but in a sudden stall when the nose quickly goes up, AOA gets larger very quickly and then onspeed goes silent right as the aircraft stalls
+
+ // min possible AOA value
+#define AOA_MIN_VALUE         -20
+
+//Tone Pulse Per Sec (PPS)
+  #define HIGH_TONE_STALL_PPS   20      // how many PPS to play during stall
+  #define HIGH_TONE_PPS_MAX     6.2     
+  #define HIGH_TONE_PPS_MIN     1.5     // 1.5
+  #define HIGH_TONE_HZ          1600    // freq of high tone  
+  #define LOW_TONE_PPS_MAX      8.2
+  #define LOW_TONE_PPS_MIN      1.5
+  #define LOW_TONE_HZ           400     // freq of low tone
+  #define TONE_RAMP_TIME        15      // millisec
+  #define STALL_RAMP_TIME       5       // millisec
+
+// serial baud rates
+  #define BAUDRATE_CONSOLE      921600
+  #define BAUDRATE_BOOM         115200 
+  #define BAUDRATE_EFIS         115200
+  #define BAUDRATE_WIFI         115200
+//  #define BAUDRATE_WIFI_HS      1240000
+  #define BAUDRATE_WIFI_HS      921600  //wifi file transfer only baud rate
+
+  // serial data timeouts
+  #define EFIS_DATA_TIMEOUT     1000  // milliseconds
+  #define BOOM_DATA_TIMEOUT     1000  // milliseconds
+
+// efis serial defines
+  #define DYNON_SERIAL_LEN              53  // 53 with live data, 52 with logged data
+
+#define TONE_PIN              30     // or also 29 for dual output
+#define TESTPOT_PIN           A20   // pin 39 on Teensy 3.6, pin 10 on DB15
+#define VOLUME_PIN            A20  // pin 39 used for audio volume, pin 10 on DB15
+#define PIN_LED1              13    // internal LED for showing serial input state.
+#define PIN_LED2              5    // external LED for showing AOA status (audio on/off), don't forget to use resistor on LED
+#define FLAP_PIN              A2     // flap position switch  (pin 7 on DB15)
+#define SWITCH_PIN            2
+#define PULSE_TONE            1
+#define SOLID_TONE            2
+#define TONE_OFF              3
+#define STARTUP_TONES_DELAY   120
+#define RANGESWEEP_LOW_AOA    4
+#define RANGESWEEP_HIGH_AOA   20
+#define RANGESWEEP_STEP       .1 // degrees AOA
+
+//﻿DB15 pinout (Gen2 v3 hardware)
+//1 - 14V +PWR
+//2 - EFIS Serial RX
+//3 - PANEL SWITCH
+//4 - GPS Serial RX
+//5 - LED+ Digital/PWM
+//6 - AUDIO RIGHT
+//7 - FLAPS Analog IN
+//8 - AUDIO LEFT
+//9 - OAT Analog IN
+//10 - VOLUME Analog IN
+//11 - SENSOR PWR 3.3V
+//12 - EFIS Serial TX
+//13 - BOOM TTL RX
+//14 - GND
+//15 - AUDIO GND 
 
 
+// IMU defines
+#define LSM9DS1_AccelGyro 0x6B
+#define LSM9DS1_Magnet    0x1E
+// LSM9DS1 Accel/Gyro (XL/G) Registers
+#define CTRL_REG5_XL      0x1F
+#define CTRL_REG6_XL      0x20
+#define CTRL_REG7_XL      0x21
+#define OUT_X_L_XL        0x28
 
-#include "aircraft_calibration-rv10.h"
-#include "probe_calibration-rv10.h"
+#define I2C_COMMUNICATION_TIMEOUT 1000  // microseconds
+
+#define _GNU_SOURCE
+
 #include <stdint.h>
 #include <i2c_t3.h> // multiport i2c (Wire.h needs to redirect here, otherwise it gets duplicated. Make a Wire.h library with an #include <i2c_t3.h> line in it.
 
@@ -50,6 +147,7 @@ SdCard* m_card = nullptr;
 uint32_t cardSectorCount = 0;
 uint8_t  sectorBuffer[512];
 
+//#include "default_config.h"
 #include <Audio.h>      // use local Audio.h with play_sd_raw.h & play_sd_wav.h commented out for SDIO compatibility.
 #include <Gaussian.h>         // gaussian lib used for avg out AOA values.
 #include <LinkedList.h>       // linked list is also required.
@@ -64,11 +162,8 @@ uint8_t  sectorBuffer[512];
 #include "AudioSampleCalibration_mode.h"
 #include "AudioSampleCalibration_saved.h"
 
-#define _GNU_SOURCE
-
+// audio mixer config
 AudioSynthWaveformSine   sinewave1;
-
-AudioSynthWaveformSine   sinewave_solid;
 AudioEffectEnvelope      envelope1;
 AudioPlayMemory          voice1;
 AudioMixer4              mixer1;
@@ -76,126 +171,48 @@ AudioOutputAnalogStereo  dacs;
 AudioAmplifier           ampLeft;
 AudioAmplifier           ampRight;
 AudioConnection          patchCord1(sinewave1, envelope1);
-AudioConnection          patchCord2(sinewave_solid, 0, mixer1, 0);
-AudioConnection          patchCord3(envelope1, 0, mixer1, 1);
-AudioConnection          patchCord4(voice1, 0, mixer1, 2);
-AudioConnection          patchCord5(mixer1, ampLeft);
-AudioConnection          patchCord6(mixer1, ampRight);
-AudioConnection          patchCord8(ampLeft, 0, dacs, 0);
-AudioConnection          patchCord9(ampRight, 0, dacs, 1);
+AudioConnection          patchCord2(envelope1, 0, mixer1, 0);
+AudioConnection          patchCord3(voice1, 0, mixer1, 2);
+AudioConnection          patchCord4(mixer1, ampLeft);
+AudioConnection          patchCord5(mixer1, ampRight);
+AudioConnection          patchCord6(ampLeft, 0, dacs, 0);
+AudioConnection          patchCord7(ampRight, 0, dacs, 1);
 
-
-#define VERSION         "v2.1.7"  // last modified 10/28/2019 by Lenny
-
-// box functionality config
-//String DATASOURCE = "TESTPOT"; // potentiometer wiper on Pin 10 of DSUB 15 connector
-//String DATASOURCE = "RANGESWEEP";
-String DATASOURCE = "SENSORS";
-//String DATASOURCE = "REPLAYLOGFILE"; // comment out #SDCARD below when replaying log files! [logfile.csv]
-
-// smoothing windows
-#define AOA_HISTORY_MAX       20  // AOA Gaussian smoothing window (originally 15)
-#define PRESSURE_HISTORY_MAX  15 // median filter window
-
-// interval timers
-#define SENSOR_INTERVAL 20000  // microsecond interval for sensor read (50hz)
-#define DISPLAY_INTERVAL 100000 // 100 msec (10Hz)
-
-// Min airspeed in knots before the audio tone is turned on
-// This is useful because if your on the ground you don't need a beeping in your ear.
-#define MUTE_AUDIO_UNDER_IAS  40
-
-// max possible AOA value
-#define AOA_MAX_VALUE         30  // was 20 befofe, but in a sudden stall when the nose quickly goes up, AOA gets larger very quickly and then onspeed goes silent right as the aircraft stalls
-
- // min possible AOA value
-#define AOA_MIN_VALUE         -20
-
-//Tone Pulse Per Sec (PPS)
-  #define HIGH_TONE_STALL_PPS   20      // how many PPS to play during stall
-  #define HIGH_TONE_PPS_MAX     6.2     
-  #define HIGH_TONE_PPS_MIN     1.5     // 1.5
-  #define HIGH_TONE_HZ          1600    // freq of high tone  
-  #define LOW_TONE_PPS_MAX      8.2
-  #define LOW_TONE_PPS_MIN      1.5
-  #define LOW_TONE_HZ           400     // freq of low tone
-
-// serial baud rates
-  #define BAUDRATE_CONSOLE      921600
-  #define BAUDRATE_BOOM         115200 
-  #define BAUDRATE_EFIS         115200
-  #define BAUDRATE_WIFI         115200
-  #define BAUDRATE_WIFI_HS      1240000
+// rangesweep direction
+int rangeSweepDirection=1; // positive
     
+volatile float efisASI=0.00;
+volatile float efisPitch=0.00;
+volatile float efisRoll=0.00;
+volatile float efisLateralG=0.00;
+volatile float efisVerticalG=0.00;
+volatile int efisPercentLift=0;
+volatile int efisPalt=0;
+volatile int efisVSI=0;
+volatile float efisTAS;
+volatile float efisOAT;
+volatile float efisFuelRemaining=0.00;
+volatile float efisFuelFlow=0.00;
+volatile float efisMAP=0.00;
+volatile int efisRPM=0;
+volatile int efisPercentPower=0;
+volatile int efisHeading=-1;
+String efisTime="";
+volatile unsigned long efisTimestamp=millis();
+String efisType="";
 
-//#define STARTUP_MELODY        1    //   play melody on startup   
-#define STARTUP_MELODY        0    //  play high-low tones on startup
-
-
-#define TONE_PIN              30     // or also 29 for dual output
-#define TESTPOT_PIN           A20   // pin 39 on Teensy 3.6
-#define VOLUME_PIN            A20  // pin 39 used for audio volume
-#define PIN_LED1              13    // internal LED for showing serial input state.
-#define PIN_LED2              5    // external LED for showing AOA status (audio on/off), don't forget to use resistor on LED
-#define FLAP_PIN              A2     // flap position switch  (pin 7 on DB15)
-#define SWITCH_PIN            2
-#define PULSE_TONE            1
-#define SOLID_TONE            2
-#define TONE_OFF              3
-#define STARTUP_TONES_DELAY   120
-#define RANGESWEEP_LOW_AOA    6
-#define RANGESWEEP_HIGH_AOA   15
-#define RANGESWEEP_STEP       .1 // degrees AOA
-
-// IMU defines
-#define LSM9DS1_AccelGyro 0x6B
-#define LSM9DS1_Magnet    0x1E
-// LSM9DS1 Accel/Gyro (XL/G) Registers
-#define CTRL_REG5_XL      0x1F
-#define CTRL_REG6_XL      0x20
-#define CTRL_REG7_XL      0x21
-#define OUT_X_L_XL        0x28
-
-#define I2C_COMMUNICATION_TIMEOUT 1000  // microseconds
-
-// efis serial defines
-    // Expected serial string lengths
-    #define DYNON_SERIAL_LEN              53  // 53 with live data, 52 with logged data
-    #define SKYVIEW_ADAHRS_SERIAL_LEN      74
-    #define SKYVIEW_EMS_SERIAL_LEN         225
-    #define G5_SERIAL_LEN                 59
-  volatile float efisASI=0.00;
-  volatile float efisPitch=0.00;
-  volatile float efisRoll=0.00;
-  volatile float efisLateralG=0.00;
-  volatile float efisVerticalG=0.00;
-  volatile int efisPercentLift=0;
-  volatile int efisPalt=0;
-  volatile int efisVSI=0;
-  volatile float efisTAS;
-  volatile float efisOAT;
-  volatile float efisFuelRemaining=0.00;
-  volatile float efisFuelFlow=0.00;
-  volatile float efisMAP=0.00;
-  volatile int efisRPM=0;
-  volatile int efisPercentPower=0;
-  volatile int efisHeading=-1;
-  String efisTime="";
-  volatile unsigned long efisTimestamp=millis();
-  String efisType="";
-
-  unsigned long lastReceivedEfisTime=micros();
-  int efis_bufferIndex=0;
-  String efisBufferString;
-  char efis_inChar;               // efis serial character
-  char last_efis_inChar=char(0x00);
-  volatile int charsreceived=0; // debug
-  volatile int cachelinecount=0; //debug variable
+unsigned long lastReceivedEfisTime;
+int efis_bufferIndex=0;
+String efisBufferString;
+char efis_inChar;               // efis serial character
+char last_efis_inChar=char(0x00);
+volatile int charsreceived=0; // debug
+volatile int cachelinecount=0; //debug variable
    
 
 #ifdef BOOM
 // boom variables
-  unsigned long lastReceivedBoomTime=micros();
+unsigned long lastReceivedBoomTime;
 volatile float boomStatic=0.0;
 volatile float boomDynamic=0.0;
 volatile float boomAlpha=0.0;
@@ -208,7 +225,6 @@ int parse_array_index=0;
 char parseBuffer[10];
 int parseBufferSize=0;
 #endif
-
 
 OneButton Switch(SWITCH_PIN, true);  // pin 2  used for the switch input
 
@@ -224,25 +240,25 @@ bool filesendtimeout;
 uint8_t toneState = false;
 bool switchState;
 unsigned char toneMode = PULSE_TONE;  // current mode of tone.  PULSE_TONE, SOLID_TONE, or TONE_OFF
+unsigned char tonePlaying = TONE_OFF;
 boolean highTone = false;             // are we playing high tone or low tone?
 uint32_t toneFreq = 0;                // store current freq of tone playing.
 volatile float pps = 20;                        // store current PPS of tone (used for debuging) 
 //float current_delay=1000/pps;                  // 1000/pps, tone timer update rate
 float AOA = 0.0;                          // avaraged AOA value is stored here.
 float LDmaxAOA=0.00;
-float onSpeedAOA=0.00;
+float onSpeedAOAfast=0.00;
+float onSpeedAOAslow=0.00;
 float stallWarningAOA=0.00;
 float percentLift=0.0;                     // normalized angle of attack, or lift %
 unsigned int ALT = 0;                 // hold ALT (only used for debuging)
 float ASI = 0.0;                          // live Air Speed Indicated
 float Palt=0.00;                          // pressure altitude
 float currentRangeSweepValue=RANGESWEEP_LOW_AOA;
-//GaussianAverage PfwdAvg = GaussianAverage(PRESSURE_HISTORY_MAX);
-//GaussianAverage P45Avg = GaussianAverage(PRESSURE_HISTORY_MAX);
-RunningMedian PfwdDivP45Median(PRESSURE_HISTORY_MAX);
-RunningMedian PfwdMedian(PRESSURE_HISTORY_MAX);
-RunningMedian P45Median(PRESSURE_HISTORY_MAX);
-GaussianAverage AOAAvg = GaussianAverage(AOA_HISTORY_MAX);
+RunningMedian PfwdDivP45Median(PRESSURE_SMOOTHING);
+RunningMedian PfwdMedian(PRESSURE_SMOOTHING);
+RunningMedian P45Median(PRESSURE_SMOOTHING);
+GaussianAverage AOAAvg = GaussianAverage(AOA_SMOOTHING);
 //GaussianAverage AOAAvg2 = GaussianAverage(50);
 
 // vars for converting AOA scale value to PPS scale value.
@@ -297,7 +313,6 @@ float SOLID_TONE_VOLUME;
 float HIGH_TONE_VOLUME_MAX;
 int volPos=0;
 int avgSlowVolPos=512;
-int avgFastVolPos=512;
 unsigned long volumeStartTime=millis();
 int flapsPos=0;
 int flapsIndex=0;
@@ -326,7 +341,7 @@ mixer1.gain(2,10); // amplify channel 2 (voice)
 #ifdef SDCARD
 
 
-    if (DATASOURCE=="SENSORS" && SD.begin(SdioConfig(FIFO_SDIO))) {    
+    if (SD.begin(SdioConfig(FIFO_SDIO))) {    
         sprintf(filenameSensor,"log_1.csv");        
         int fileCount=1;
         while (SD.exists(filenameSensor))
@@ -346,7 +361,7 @@ mixer1.gain(2,10); // amplify channel 2 (voice)
         Serial.println("NOLOAD! - show pressure sensor bias");
         Serial.println("START! - start logging to SD card");
         Serial.println("REBOOT! - reboot system");
-        Serial.println("WIFIREFLASH!- allow reflashign Wifi chip via USB cable");
+        Serial.println("WIFIREFLASH!- allow reflashing Wifi chip via USB cable");
         Serial.println("FLAPS! - show current flap position value");
         Serial.println("VOLUME! -show current volume potentiometer value");                
         Serial.println();
@@ -432,6 +447,13 @@ mixer1.gain(2,10); // amplify channel 2 (voice)
   ToneTimer.priority(16);
   ToneTimer.begin(tonePlayHandler,1000000/pps); // microseconds     
   
+  #ifdef SERIALEFISDATA
+  lastReceivedEfisTime=millis();
+  #endif
+  #ifdef BOOM
+  lastReceivedBoomTime=millis();
+  #endif
+
 
 #ifdef WIFI
    LiveDisplayTimer.priority(224);
@@ -478,7 +500,7 @@ mixer1.gain(2,10); // amplify channel 2 (voice)
                                             Serial.println("ERROR: Could not open logfile.csv on the SD card.");
                                            }
                                            
-                            Serial.println();               
+                          //  Serial.println("Log file opened.");               
                                                                                                                   
                           }
 
@@ -491,8 +513,6 @@ mixer1.gain(2,10); // amplify channel 2 (voice)
  sinewave1.frequency(400);
  sinewave1.amplitude(0);
  //sinewave1.begin(WAVEFORM_SINE);
- sinewave_solid.frequency(400);
- sinewave_solid.amplitude(0);
  //sinewave_solid.begin(WAVEFORM_SINE);
  AudioInterrupts(); 
 }
@@ -531,16 +551,13 @@ void tonePlayHandler(){
                          } 
                          
 }
-//float LDmaxAOA=0.00;
-//float onSpeedAOA=0.00;
-//float stallWarningAOA=0.00;
 
 void updateTones()
 {
   if(ASI <= MUTE_AUDIO_UNDER_IAS) {
   #ifdef SHOW_SERIAL_DEBUG    
   // show audio muted and debug info.
-  sprintf(tempBuf, "AUDIO MUTED: Airspeed to low. Min:%i ASI:%.2f",MUTE_AUDIO_UNDER_IAS, ASI);
+  sprintf(tempBuf, "AUDIO MUTED: Airspeed too low. Min:%i ASI:%.2f",MUTE_AUDIO_UNDER_IAS, ASI);
   Serial.println(tempBuf);
   #endif 
   toneMode = TONE_OFF;
@@ -553,29 +570,29 @@ void updateTones()
     highTone = true;
     setPPSTone(HIGH_TONE_STALL_PPS);
     toneMode = PULSE_TONE;
-    } else if(AOA > (onSpeedAOA+ONSPEED_BAND_HIGH))
+    } else if(AOA > (onSpeedAOAslow))
             {
             // play HIGH tone at Pulse Rate 1.5 PPS to 6.2 PPS (depending on AOA value)
             highTone = true;
             toneMode = PULSE_TONE;
-            NewValue=mapfloat(AOA,onSpeedAOA+ONSPEED_BAND_HIGH,stallWarningAOA,HIGH_TONE_PPS_MIN,HIGH_TONE_PPS_MAX);
-            setPPSTone(NewValue);
-            } else if(AOA >= (onSpeedAOA-ONSPEED_BAND_LOW))
+            NewValue=mapfloat(AOA,onSpeedAOAslow,stallWarningAOA,HIGH_TONE_PPS_MIN,HIGH_TONE_PPS_MAX);
+            setPPSTone(NewValue); // when transitioning from solid to high tone make the first one shorter
+            } else if(AOA >= (onSpeedAOAfast))
                    {
                     // play a steady LOW tone
                     highTone = false;
                     toneMode = SOLID_TONE;
-                    setPPSTone(20);
-                   } else if (AOA >= LDmaxAOA && LDmaxAOA<onSpeedAOA)
-                          {  // if L/D max AOA is higher than OnSpeed, skip the low tone. This usually happens with full flaps.
+                    setPPSTone(LOW_TONE_PPS_MAX);// set PPS to LOW_TONE_PPS_MAX for a higher update rate when coming out of it
+                   } else if (AOA >= LDmaxAOA && LDmaxAOA<onSpeedAOAfast)
+                          {  // if L/D max AOA is higher than OnSpeedfast, skip the low tone. This usually happens with full flaps.
                           toneMode = PULSE_TONE;
                           highTone = false;
                           // play LOW tone at Pulse Rate 1.5 PPS to 8.2 PPS (depending on AOA value)
-                          NewValue=mapfloat(AOA,LDmaxAOA,onSpeedAOA-ONSPEED_BAND_LOW,LOW_TONE_PPS_MIN,LOW_TONE_PPS_MAX);
+                          NewValue=mapfloat(AOA,LDmaxAOA,onSpeedAOAfast,LOW_TONE_PPS_MIN,LOW_TONE_PPS_MAX);
                           setPPSTone(NewValue);
                           } else {                          
                                  toneMode = TONE_OFF;
-                                 setPPSTone(20);   
+                                 setPPSTone(HIGH_TONE_STALL_PPS);  // high update rate pps 
                                  }    
 }
 
@@ -586,40 +603,6 @@ void setPPSTone(float newPPS) {
 }
 
 
-
-void dacTone(int freq)
-{
- sinewave_solid.frequency(freq);
- sinewave_solid.amplitude(1);
-}
-
-void playMelody()
-    {
-    dacTone(400);
-    delay(STARTUP_TONES_DELAY);
-    dacTone(600);
-    delay(STARTUP_TONES_DELAY);
-    dacTone(800);
-    delay(STARTUP_TONES_DELAY);
-    dacTone(1000);
-    delay(STARTUP_TONES_DELAY);
-    dacTone(1200);
-    delay(STARTUP_TONES_DELAY);
-    dacTone(1000);
-    delay(STARTUP_TONES_DELAY);
-    dacTone(800);
-    delay(STARTUP_TONES_DELAY);
-    dacTone(600);
-    delay(STARTUP_TONES_DELAY);
-    dacTone(400);
-    delay(STARTUP_TONES_DELAY);
-    dacToneStop();
-    }
-
-void dacToneStop()
-{
-sinewave_solid.amplitude(0);
-}
 
 void switchCheck()
 {
@@ -1135,7 +1118,7 @@ if (serialCmdBufferSize >=50)
 
 
 
-if (millis()-looptime > 1000)
+if (millis()-looptime > 1000) // check serial ports every second (reset connection if needed) and write to SD card
       {      
       #ifdef EFISDATADEBUG
       Serial.printf("\nloopcount: %i",loopcount);
@@ -1144,25 +1127,25 @@ if (millis()-looptime > 1000)
             
       #ifdef SERIALEFISDATA
           //check for efis stream, restart port of not receiving data for half second
-          if (micros()-lastReceivedEfisTime>=500000)
-             {
+          if (millis()-lastReceivedEfisTime>=EFIS_DATA_TIMEOUT)
+             {             
              Serial3.end();             
-             Serial3.begin(BAUDRATE_EFIS);
-             //Serial.printf("\nlast transmit: %i", micros()-lastReceivedEfisTime);
+             Serial3.begin(BAUDRATE_EFIS);             
              #ifdef EFISDATADEBUG
              Serial.println("\n Efis data timeout. Restarting serial port 3");
+             Serial.printf("\nEfis last transmit: %i", millis()-lastReceivedEfisTime);             
              #endif
              }
       #endif
       #ifdef BOOM
           //check for efis stream, restart port of not receiving data for half second
-          if (micros()-lastReceivedBoomTime>=500000)
-             {
+          if (millis()-lastReceivedBoomTime>=BOOM_DATA_TIMEOUT)
+             {             
              Serial1.end();             
-             Serial1.begin(BAUDRATE_BOOM);
-             //Serial.printf("\nlast transmit: %i", micros()-lastReceivedEfisTime);
-             #ifdef BOOMDATADEBUG
-             Serial.println("\n Boom data timeout. Restarting serial port 1");
+             Serial1.begin(BAUDRATE_BOOM);           
+             #ifdef BOOMDATADEBUG 
+             Serial.println("\n Boom data timeout. Restarting serial port 1");            
+             Serial.printf("\nBoom last transmit: %i", millis()-lastReceivedBoomTime);
              #endif
              }
       #endif
@@ -1186,7 +1169,7 @@ void readSerialData()
  while (Serial3.available()>0)
       {       
       efis_inChar=Serial3.read();
-      lastReceivedEfisTime=micros(); 
+      lastReceivedEfisTime=millis(); 
       charsreceived++;      
       if  (efisBufferString.length()>=230) efisBufferString=""; // prevent buffer overflow;     
       if ((efisBufferString.length()>0 || last_efis_inChar== char(0x0A)))  // data line terminats with 0D0A, when buffer is empty look for 0A in the incoming stream and dump everything else
@@ -1196,7 +1179,7 @@ void readSerialData()
                       {
                       // end of line
 #ifdef EFISTYPE_ADVANCED                 
-                      if (efisBufferString.length()==SKYVIEW_ADAHRS_SERIAL_LEN && efisBufferString[0]=='!' && efisBufferString[1]=='1')
+                      if (efisBufferString.length()==74 && efisBufferString[0]=='!' && efisBufferString[1]=='1')
                          {
                          // parse Skyview AHRS data
                          efisType="SKYVIEW";
@@ -1207,63 +1190,74 @@ void readSerialData()
                          calcCRC=calcCRC & 0xFF;
                          if (calcCRC==(int)strtol(&efisBufferString.substring(70, 72)[0],NULL,16)) // convert from hex back into integer for camparison, issue with missing leading zeros when comparing hex formats
                             {
-                             //float efisASI
-                            
+                             //float efisASI                            
                              parseString=efisBufferString.substring(23, 27); 
+                             yield();
                              noInterrupts();
                              if (parseString!="XXXX") efisASI=parseString.toFloat()/10; else efisASI=-1; // knots
                              interrupts();
                              //float efisPitch                             
                              parseString=efisBufferString.substring(11, 15);
-                             noInterrupts();
+                             yield();
+                             noInterrupts();                             
                              if (parseString!="XXXX") efisPitch=parseString.toFloat()/10; else efisPitch=-100; // degrees
                              interrupts();
                              // float efisRoll
                              parseString=efisBufferString.substring(15, 20);
-                             noInterrupts();
+                             yield();
+                             noInterrupts();                             
                              if (parseString!="XXXXX") efisRoll=parseString.toFloat()/10; else efisRoll=-100; // degrees
                              interrupts();
                             // float MagneticHeading                                   
                              parseString=efisBufferString.substring(20, 23);
-                             noInterrupts();
+                             yield();
+                             noInterrupts();                             
                              if (parseString!="XXX") efisHeading=parseString.toInt(); else efisHeading=-1;                             
                              interrupts();
                              // float efisLateralG
                              parseString=efisBufferString.substring(37, 40);
+                             yield();
                              noInterrupts();
                              if (parseString!="XXX") efisLateralG=parseString.toFloat()/100; else efisLateralG=-100;
                              interrupts();
                              // float efisVerticalG                                   
                              parseString=efisBufferString.substring(40, 43);
+                             yield();
                              noInterrupts();
                              if (parseString!="XXX") efisVerticalG=parseString.toFloat()/10; else efisVerticalG=-100;
                              interrupts();
                              // int efisPercentLift                 
                              parseString=efisBufferString.substring(43, 45);
+                             yield();
                              noInterrupts();
                              if (parseString!="XX") efisPercentLift=parseString.toInt(); else efisPercentLift=-1; // 00 to 99, percentage of stall angle.
                              interrupts();
                              // int efisPalt
                              parseString=efisBufferString.substring(27, 33); 
+                             yield();
                              noInterrupts();
                              if (parseString!="XXXXXX") efisPalt=parseString.toInt(); else efisPalt=-10000; // feet
                              interrupts();
                              // int efisVSI                 
                              parseString=efisBufferString.substring(45, 49); 
+                             yield();
                              noInterrupts();
                              if (parseString!="XXXX") efisVSI=parseString.toInt()*10; else efisVSI=-10000; // feet/min 
                              interrupts();
                              //float efisTAS;
-                             parseString=efisBufferString.substring(52, 56); 
+                             parseString=efisBufferString.substring(52, 56);
+                             yield();
                              noInterrupts();
                              if (parseString!="XXXX") efisTAS=parseString.toFloat()/10; else efisTAS=-1; // kts             
                              interrupts();
                              //float efisOAT;
                              parseString=efisBufferString.substring(49, 52);
+                             yield();
                              noInterrupts();
                              if (parseString!="XXX") efisOAT=parseString.toFloat(); else efisTAS=-100; // Celsius
                              interrupts();                             
                              // String efisTime
+                             yield();
                              noInterrupts();
                              efisTime=efisBufferString.substring(3, 5)+":"+efisBufferString.substring(5, 7)+":"+efisBufferString.substring(7, 9)+"."+efisBufferString.substring(9, 11);                             
                              efisTimestamp=millis();
@@ -1282,7 +1276,7 @@ void readSerialData()
                             
                          } else
                          
-                         if (efisBufferString.length()==SKYVIEW_EMS_SERIAL_LEN && efisBufferString[0]=='!' && efisBufferString[1]=='3')
+                         if (efisBufferString.length()==225 && efisBufferString[0]=='!' && efisBufferString[1]=='3')
                                  {
                                  // parse Skyview EMS data
                                  efisType="SKYVIEW";
@@ -1296,27 +1290,32 @@ void readSerialData()
                                    
                                     //float efisFuelRemaining=0.00;
                                      parseString=efisBufferString.substring(44, 47);
+                                     yield();
                                      noInterrupts();
                                      if (parseString!="XXX") efisFuelRemaining=parseString.toFloat()/10; else efisFuelRemaining=-1; // gallons
                                      interrupts();
                                      //float efisFuelFlow=0.00;
                                      parseString=efisBufferString.substring(29, 32);
+                                     yield();
                                      noInterrupts();
                                      if (parseString!="XXX") efisFuelFlow=parseString.toFloat()/10; else efisFuelFlow=-1; // gph
                                      interrupts();
                                      //float efisMAP=0.00;
                                      parseString=efisBufferString.substring(26, 29);
+                                     yield();
                                      noInterrupts();
                                      if (parseString!="XXX") efisMAP=parseString.toFloat()/10; else efisMAP=-1; //inHg
                                      interrupts();
                                      // int efisRPM=0;
                                      parseString=efisBufferString.substring(18, 22);
+                                     yield();
                                      noInterrupts();
                                      if (parseString!="XXXX") efisRPM=parseString.toInt(); else efisRPM=-1;
                                      interrupts();
                                      // int efisPercentPower=0;                                     
                                      parseString=efisBufferString.substring(217, 220);
-                                     noInterrupts();
+                                     yield();
+                                     noInterrupts();                                     
                                      if (parseString!="XXX") efisPercentPower=parseString.toInt(); else efisPercentPower=-1;                                                            
                                      interrupts();
                                      #ifdef EFISDATADEBUG
@@ -1341,27 +1340,63 @@ void readSerialData()
                                     {
                                     // parse Dynon data
                                      efisType="DYNOND10";
+                                     String parseString;
                                      //calculate CRC
                                      int calcCRC=0;
                                      for (int i=0;i<=48;i++) calcCRC+=efisBufferString[i];                     
                                      calcCRC=calcCRC & 0xFF;
                                      if (calcCRC==(int)strtol(&efisBufferString.substring(49, 51)[0],NULL,16)) // convert from hex back into integer for camparison, issue with missing leading zeros when comparing hex formats
                                         {
-                                        // CRC passed                                                             
+                                        // CRC passed
+                                         parseString=efisBufferString.substring(20, 24);                                                                                                      
+                                         yield();
                                          noInterrupts();
-                                         efisASI=efisBufferString.substring(20, 24).toFloat()/10*1.94384; // m/s to knots
-                                         efisPitch=efisBufferString.substring(8, 12).toFloat()/10;
-                                         efisRoll=efisBufferString.substring(12, 17).toFloat()/10;
-                                         efisLateralG=efisBufferString.substring(33, 36).toFloat()/100;
-                                         efisVerticalG=efisBufferString.substring(36, 39).toFloat()/10;
-                                         efisPercentLift=efisBufferString.substring(39, 41).toInt(); // 00 to 99, percentage of stall angle.
-                                         if (bitRead(char(efisBufferString[46]), 0))
+                                         efisASI=parseString.toFloat()/10*1.94384; // m/s to knots
+                                         interrupts();                                         
+                                         parseString=efisBufferString.substring(8, 12);
+                                         yield();
+                                         noInterrupts();
+                                         efisPitch=parseString.toFloat()/10;
+                                         interrupts();                                         
+                                         parseString=efisBufferString.substring(12, 17);
+                                         yield();
+                                         noInterrupts();
+                                         efisRoll=parseString.toFloat()/10;
+                                         interrupts();                                         
+                                         parseString=efisBufferString.substring(33, 36);
+                                         yield();
+                                         noInterrupts();
+                                         efisLateralG=parseString.toFloat()/100;
+                                         interrupts();                                         
+                                         parseString=efisBufferString.substring(36, 39);
+                                         yield();
+                                         noInterrupts();
+                                         efisVerticalG=parseString.toFloat()/10;
+                                         interrupts();                                         
+                                         parseString=efisBufferString.substring(39, 41);
+                                         yield();
+                                         noInterrupts();
+                                         efisPercentLift=parseString.toInt(); // 00 to 99, percentage of stall angle
+                                         interrupts();  
+                                         parseString=efisBufferString.substring(45,47);
+                                         long statusBitInt = strtol(&parseString[1], NULL, 16);                                                                                 
+                                         if (bitRead(statusBitInt, 0))
                                               {
-                                              // when bitmask bit 0 is 1, grab pressure altitudeand VSI, otherwise use previous value
-                                              efisPalt=efisBufferString.substring(24, 29).toInt()*3.28084; // meters to feet
-                                              efisVSI= int(efisBufferString.substring(29, 33).toFloat()/10*60); // feet/sec to feet/min 
-                                              }                 
+                                              // when bitmask bit 0 is 1, grab pressure altitude and VSI, otherwise use previous value (skip turn rate and density altitude)
+                                              parseString=efisBufferString.substring(24, 29);
+                                              yield();
+                                              noInterrupts();
+                                              efisPalt=parseString.toInt()*3.28084; // meters to feet
+                                              interrupts();
+                                              parseString=efisBufferString.substring(29, 33);
+                                              yield();
+                                              noInterrupts();
+                                              efisVSI= int(parseString.toFloat()/10*60); // feet/sec to feet/min
+                                              interrupts();
+                                              }                                                               
                                          efisTimestamp=millis();
+                                         yield();
+                                         noInterrupts();
                                          efisTime=efisBufferString.substring(0, 2)+":"+efisBufferString.substring(2, 4)+":"+efisBufferString.substring(4, 6)+"."+efisBufferString.substring(6, 8);                                        
                                          interrupts();
                                          #ifdef EFISDATADEBUG                     
@@ -1369,8 +1404,7 @@ void readSerialData()
                                          #endif
                                          #ifdef SDCARDDEBUG
                                          Serial.print(".");
-                                         #endif
-                                         
+                                         #endif                                         
                                         }
                                         #ifdef EFISDATADEBUG
                                         else Serial.println("D10 CRC Failed");
@@ -1380,30 +1414,62 @@ void readSerialData()
 #endif
 #ifdef EFISTYPE_GARMING5                                    
                                       
-                                      if (efisBufferString.length()==G5_SERIAL_LEN && efisBufferString[0]=='=' && efisBufferString[1]=='1' && efisBufferString[2]=='1')
+                                      if (efisBufferString.length()==59 && efisBufferString[0]=='=' && efisBufferString[1]=='1' && efisBufferString[2]=='1')
                                                  {
                                                  // parse G5 data
                                                  efisType="GARMING5";
+                                                 String parseString;
                                                  //calculate CRC
                                                  int calcCRC=0;                           
                                                  for (int i=0;i<=54;i++) calcCRC+=efisBufferString[i];                     
                                                  calcCRC=calcCRC & 0xFF;
                                                  if (calcCRC==(int)strtol(&efisBufferString.substring(55, 57)[0],NULL,16)) // convert from hex back into integer for camparison, issue with missing leading zeros when comparing hex formats
                                                     {
-                                                    // CRC passed                                                      
-                                                    noInterrupts(); 
-                                                     efisASI=efisBufferString.substring(23, 27).toFloat()/10;
-                                                     efisPitch=efisBufferString.substring(11, 15).toFloat()/10;
-                                                     efisRoll=efisBufferString.substring(15, 20).toFloat()/10;                                                     
-                                                     efisLateralG=efisBufferString.substring(37, 40).toFloat()/100;                            
-                                                     efisVerticalG=efisBufferString.substring(40, 43).toFloat()/10;
-                                                     efisPercentLift=0.00; //not available on G5
-                                                     efisPalt=efisBufferString.substring(27, 33).toInt(); // feet
-                                                     efisVSI=efisBufferString.substring(45, 49).toInt()*10; //10 fpm
-                                                     efisTimestamp=millis();  
-                                                    interrupts();                                                   
+                                                      // CRC passed                                                                                                          
+                                                     parseString=efisBufferString.substring(23, 27);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="____") efisASI=parseString.toFloat()/10;
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(11, 15);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="____") efisPitch=parseString.toFloat()/10;
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(15, 20);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="_____") efisRoll=parseString.toFloat()/10;                                                    
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(20, 23);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="___") efisHeading=parseString.toInt();
+                                                     interrupts();                                                     
+                                                     parseString=efisBufferString.substring(37, 40);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="___") efisLateralG=parseString.toFloat()/100;                            
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(40, 43);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="___") efisVerticalG=parseString.toFloat()/10;
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(27, 33);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="______") efisPalt=parseString.toInt(); // feet
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(45, 49);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="____") efisVSI=parseString.toInt()*10; //10 fpm
+                                                     efisTimestamp=millis();
+                                                     efisTime=efisBufferString.substring(3, 5)+":"+efisBufferString.substring(5, 7)+":"+efisBufferString.substring(7, 9)+"."+efisBufferString.substring(9, 11);   
+                                                     interrupts();                                                   
                                                      #ifdef EFISDATADEBUG
-                                                     Serial.printf("G5 data: efisASI %.2f, efisPitch %.2f, efisRoll %.2f, efisLateralG %.2f, efisVerticalG %.2f, efisPercentLift %i, efisPalt %i, efisVSI %i", efisASI, efisPitch, efisRoll, efisLateralG, efisVerticalG, efisPercentLift,efisPalt,efisVSI);                        
+                                                     Serial.printf("G5 data: efisASI %.2f, efisPitch %.2f, efisRoll %.2f, efisHeading %i, efisLateralG %.2f, efisVerticalG %.2f, efisPalt %i, efisVSI %i,efisTime %s", efisASI, efisPitch, efisRoll, efisHeading, efisLateralG, efisVerticalG,efisPalt,efisVSI,efisTime);                        
                                                      Serial.println();
                                                      #endif
                                                      #ifdef SDCARDDEBUG
@@ -1412,10 +1478,124 @@ void readSerialData()
                                                      }
                                                      #ifdef EFISDATADEBUG
                                                      else Serial.println("G5 CRC Failed");
-                                                     #endif
-                                                                             
+                                                     #endif                                                                             
                                                   }
-  #endif                                                
+  #endif 
+#ifdef EFISTYPE_GARMING3X                                    
+                                      // parse G3X attitude data, 10hz
+                                      if (efisBufferString.length()==59 && efisBufferString[0]=='=' && efisBufferString[1]=='1' && efisBufferString[2]=='1')
+                                                 {
+                                                 // parse G3X data
+                                                 efisType="GARMING3X";
+                                                 String parseString;
+                                                 //calculate CRC
+                                                 int calcCRC=0;                           
+                                                 for (int i=0;i<=54;i++) calcCRC+=efisBufferString[i];                     
+                                                 calcCRC=calcCRC & 0xFF;
+                                                 if (calcCRC==(int)strtol(&efisBufferString.substring(55, 57)[0],NULL,16)) // convert from hex back into integer for camparison, issue with missing leading zeros when comparing hex formats
+                                                    {
+                                                    // CRC passed                                                                                                          
+                                                     parseString=efisBufferString.substring(23, 27);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="____") efisASI=parseString.toFloat()/10;
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(11, 15);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="____") efisPitch=parseString.toFloat()/10;
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(15, 20);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="_____") efisRoll=parseString.toFloat()/10;                                                    
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(20, 23);
+                                                     yield();
+                                                     noInterrupts();                                                     
+                                                     if (parseString!="___") efisHeading=parseString.toInt();
+                                                     interrupts();                                                     
+                                                     parseString=efisBufferString.substring(37, 40);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="___") efisLateralG=parseString.toFloat()/100;                            
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(40, 43);
+                                                     yield();
+                                                     noInterrupts();                                                     
+                                                     if (parseString!="___") efisVerticalG=parseString.toFloat()/10;
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(43, 45);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="__") efisPercentLift=parseString.toInt();
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(27, 33);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="______") efisPalt=parseString.toInt(); // feet
+                                                     interrupts();
+                                                     parseString=efisBufferString.substring(45, 49);
+                                                     yield();
+                                                     noInterrupts();
+                                                     if (parseString!="____") efisVSI=parseString.toInt()*10; //10 fpm                                                     
+                                                     efisTimestamp=millis();                                                       
+                                                     efisTime=efisBufferString.substring(3, 5)+":"+efisBufferString.substring(5, 7)+":"+efisBufferString.substring(7, 9)+"."+efisBufferString.substring(9, 11);                                        
+                                                     interrupts();                                                   
+                                                     #ifdef EFISDATADEBUG
+                                                     Serial.printf("G3X Attitude data: efisASI %.2f, efisPitch %.2f, efisRoll %.2f, efisHeading %i, efisLateralG %.2f, efisVerticalG %.2f, efisPercentLift %i, efisPalt %i, efisVSI %i,efisTime %s", efisASI, efisPitch, efisRoll, efisHeading, efisLateralG, efisVerticalG, efisPercentLift,efisPalt,efisVSI,efisTime);                        
+                                                     Serial.println();
+                                                     #endif
+                                                     #ifdef SDCARDDEBUG
+                                                     Serial.print(".");
+                                                     #endif                                                      
+                                                     }
+                                                     #ifdef EFISDATADEBUG
+                                                     else Serial.println("G3X Attitude CRC Failed");
+                                                     #endif                                                                             
+                                                  }
+                                           // parse G3X engine data, 5Hz
+                                      if (efisBufferString.length()==221 && efisBufferString[0]=='=' && efisBufferString[1]=='3' && efisBufferString[2]=='1') 
+                                      {                                      
+                                                 efisType="GARMING3X";
+                                                 String parseString;
+                                                 //calculate CRC
+                                                 int calcCRC=0;                           
+                                                 for (int i=0;i<=216;i++) calcCRC+=efisBufferString[i];
+                                                 calcCRC=calcCRC & 0xFF;
+                                                 if (calcCRC==(int)strtol(&efisBufferString.substring(219, 221)[0],NULL,16)) // convert from hex back into integer for camparison, issue with missing leading zeros when comparing hex formats
+                                                    { 
+                                                    //float efisFuelRemaining=0.00;
+                                                    parseString=efisBufferString.substring(44, 47);
+                                                    noInterrupts();
+                                                    if (parseString!="___") efisFuelRemaining=parseString.toFloat()/10;
+                                                    interrupts(); 
+                                                    parseString=efisBufferString.substring(29, 32);
+                                                    noInterrupts();
+                                                    if (parseString!="___") efisFuelFlow=parseString.toFloat()/10;                                                    
+                                                    interrupts();
+                                                    parseString=efisBufferString.substring(26, 29);
+                                                    noInterrupts();
+                                                    if (parseString!="___") efisMAP=parseString.toFloat()/10;
+                                                    interrupts(); 
+                                                    parseString=efisBufferString.substring(18, 22);
+                                                    noInterrupts();
+                                                    if (parseString!="____") efisRPM==parseString.toInt();                                                    
+                                                    interrupts(); 
+                                                    #ifdef EFISDATADEBUG
+                                                    Serial.printf("G3X EMS: efisFuelRemaining %.2f, efisFuelFlow %.2f, efisMAP %.2f, efisRPM %i\n", efisFuelRemaining, efisFuelFlow, efisMAP, efisRPM);                                     
+                                                    #endif
+                                                    #ifdef SDCARDDEBUG
+                                                    Serial.print(".");
+                                                    #endif
+                                                    }
+                                                     #ifdef EFISDATADEBUG
+                                                     else Serial.println("G3X EMS CRC Failed");
+                                                     #endif                                     
+                                      }
+                                                  
+  #endif 
+                                                 
                       efisBufferString="";  // reset buffer                                               
                       }
         } // 0x0A first
@@ -1429,6 +1609,8 @@ void readSerialData()
          #endif // efisdatadebug
         last_efis_inChar=efis_inChar;
       }
+
+      
 #endif
 
 #ifdef BOOM
@@ -1436,6 +1618,7 @@ void readSerialData()
 while (Serial1.available())
   {
   serialBoomChar = Serial1.read();
+  lastReceivedBoomTime=millis();
   if (serialBufferSize>=50) serialBufferSize=0; // prevent serial buffer overflow
               
   if (serialBoomChar!='$' && serialBoomChar!=char(0x0D) && serialBoomChar!=char(0x0A) && serialBufferSize<50 && serialBufferSize>0 && serialBuffer[0]=='$')
@@ -1509,15 +1692,23 @@ while (Serial1.available())
             
 }
 
-
-
 void setFrequencytone(uint32_t frequency)
 {
-
+ float volume=0;
  noInterrupts();
- float pulse_delay= 1000/pps;
+ float pulse_delay= 1000/pps; 
  interrupts();
-ToneTimer.begin(tonePlayHandler,(int)(pulse_delay*1000));
+ float tone_length=pulse_delay-3; // tone_length must be below 100%, otherwise envelopes overlap
+
+if (highTone && tonePlaying==SOLID_TONE)
+    {
+    // shorter delay when transitioning from solid to high tone
+    ToneTimer.end();
+    ToneTimer.begin(tonePlayHandler,(pulse_delay/2+1000/LOW_TONE_PPS_MAX/2)*1000); // create half the time of the original waveform + the half of LOW_TONE_PPS_MAX = shorter transition to high tone, better response rate
+    } else
+      {
+      ToneTimer.begin(tonePlayHandler,pulse_delay*1000);
+      }
 // Serial.printf("millis: %i, freq update: %i, pps: %0.2f\n",millis(),(int)(pulse_delay*1000),pps);
 #ifdef SHOW_SERIAL_DEBUG
   Serial.print(millis());
@@ -1535,15 +1726,56 @@ ToneTimer.begin(tonePlayHandler,(int)(pulse_delay*1000));
   Serial.print(switchState);
   Serial.print(", toneMode:");
   Serial.println(toneMode);
-#endif 
- //Serial.println(int(AOASmooth*10)); // display a smoothed AOA in the terminal  for debugging purposes
+#endif
+
+#ifdef AUDIO_3D  // if 3D audio is enabled modify the gains of each channel to follow slip ball
+if (abs(efisLateralG)>=0.005)
+    {
+    float channelGain=AUDIO_3D_CURVE(efisLateralG); //-0.184*log(efisLateralG) - 0.2816;
+    if (efisLateralG<0)
+       {
+       // left ball deflection
+
+       AudioNoInterrupts();
+       ampLeft.gain(1+(1-channelGain));
+       ampRight.gain(channelGain);
+       AudioInterrupts();  
+       #ifdef AUDIO_3D_DEBUG
+       Serial.printf("%0.3fG, Left: %0.3f, Right: %0.3f\n",efisLateralG,1+(1-channelGain),channelGain);
+       #endif     
+       } else
+            {
+            // right ball deflection  
+            AudioNoInterrupts();
+            ampRight.gain(1+(1-channelGain));
+            ampLeft.gain(channelGain);
+            AudioInterrupts();
+            #ifdef AUDIO_3D_DEBUG  
+            Serial.printf("%0.3fG, Left: %0.3f, Right: %0.3f\n",efisLateralG,channelGain,1+(1-channelGain));
+            #endif
+            }
+    }  else
+        {
+         AudioNoInterrupts(); 
+         ampLeft.gain(1.0);
+         ampRight.gain(1.0);         
+         AudioInterrupts();
+         #ifdef AUDIO_3D_DEBUG  
+         Serial.printf("%0.3fG, Left: %0.3f, Right: %0.3f\n",efisLateralG,1,1);
+         #endif
+        }
+#endif // AUDIO_3D
+
+
+
+ 
  if (!switchState)
     {
     // if audio switch is off don't play any tones
     AudioNoInterrupts();
-    sinewave1.amplitude(0);
-    sinewave_solid.amplitude(0); 
+    sinewave1.amplitude(volume);
     AudioInterrupts();
+    tonePlaying=TONE_OFF;
     return;
     }
     
@@ -1552,67 +1784,90 @@ ToneTimer.begin(tonePlayHandler,(int)(pulse_delay*1000));
     Serial.print("cancel tone: ");Serial.println(frequency);   
     #endif
     AudioNoInterrupts();
-    sinewave1.amplitude(0); // turn off pulsed tone
-    sinewave_solid.amplitude(0); // turn off solid tone  
+    sinewave1.amplitude(volume); // turn off pulsed tone
     AudioInterrupts();
     toneFreq = frequency;
+    tonePlaying=TONE_OFF;
     return;
   } 
-
+//Serial.println(pps);  
  if (toneMode==SOLID_TONE)
       {
-      AudioNoInterrupts();
-      sinewave1.amplitude(0);
-      sinewave_solid.frequency(frequency);
-      sinewave_solid.amplitude(SOLID_TONE_VOLUME);
-      AudioInterrupts();
-      #ifdef SHOW_SERIAL_DEBUG
-      Serial.print("volume: ");
-      Serial.println(SOLID_TONE_VOLUME);
-      #endif
+      volume=SOLID_TONE_VOLUME;      
+      if (tonePlaying!=SOLID_TONE) // if solid tone not already playing
+          {
+          AudioNoInterrupts();
+          envelope1.noteOff(); // turn off previous note
+          sinewave1.frequency(frequency);
+          sinewave1.amplitude(volume);
+          AudioInterrupts();
+          
+          AudioNoInterrupts();          
+          envelope1.delay(1000/LOW_TONE_PPS_MAX/2); // this timing provides a smooth transition from low tones into solid and a quick transition from high tones back into to solid
+          envelope1.attack(TONE_RAMP_TIME);
+          envelope1.hold(0);
+          envelope1.decay(0); 
+          envelope1.sustain(1);
+          envelope1.release(TONE_RAMP_TIME);
+          envelope1.releaseNoteOn(0);
+          envelope1.noteOn();
+          AudioInterrupts();
+          
+          tonePlaying=SOLID_TONE;
+          }
       
       } else
       {
-      AudioNoInterrupts();
-      sinewave_solid.amplitude(0);
+      AudioNoInterrupts();      
       sinewave1.frequency(frequency);
-//      sinewave1.begin(WAVEFORM_SINE);
       AudioInterrupts();
+      // set tone volume
       if (!highTone)
                     {
-                    #ifdef SHOW_SERIAL_DEBUG
-                    Serial.print("volume: ");                    
-                    Serial.println(LOW_TONE_VOLUME);
-                    #endif
-                    AudioNoInterrupts();
-                    sinewave1.amplitude(LOW_TONE_VOLUME);
-                    AudioInterrupts();
+                    // low tone
+                    volume=LOW_TONE_VOLUME;                    
                     }
                     else if (highTone)
                                       {
-                                      float volume;
-                                      if (pps==20) volume=HIGH_TONE_VOLUME_MAX; else volume=constrain(mapfloat(pps,HIGH_TONE_PPS_MIN,HIGH_TONE_PPS_MAX,HIGH_TONE_VOLUME_MIN,HIGH_TONE_VOLUME_MAX),HIGH_TONE_VOLUME_MIN,HIGH_TONE_VOLUME_MAX);                                                                                                                      
-                                      AudioNoInterrupts();
-                                      sinewave1.amplitude(volume);
-                                      AudioInterrupts();
-                                      #ifdef SHOW_SERIAL_DEBUG
-                                      Serial.print("volume: ");              
-                                      Serial.println(volume);
-                                      #endif
+                                      // high tone                                        
+                                      if (pps==HIGH_TONE_STALL_PPS) volume=HIGH_TONE_VOLUME_MAX; else volume=constrain(mapfloat(pps,HIGH_TONE_PPS_MIN,HIGH_TONE_PPS_MAX,HIGH_TONE_VOLUME_MIN,HIGH_TONE_VOLUME_MAX),HIGH_TONE_VOLUME_MIN,HIGH_TONE_VOLUME_MAX);                                                                                                                      
                                       }                                                                                                                                                                                                                                    
       
+      AudioNoInterrupts();
+      envelope1.noteOff(); // turn off previous note
+      AudioInterrupts();
+      
       AudioNoInterrupts();      
-      //envelope1.attack(current_delay*.066);
-      //envelope1.hold(current_delay*.266);
-      //envelope1.decay(current_delay*.66);
-      envelope1.noteOff();
-      envelope1.attack(pulse_delay*0.088);
-      envelope1.hold(pulse_delay*0.28);
-      envelope1.decay(pulse_delay*.088); // total of the above multipliers must be below .5, otherwise envelopes overlap
+      sinewave1.amplitude(volume);      
+      // transition quicker from solid to a high tone
+      if (highTone && tonePlaying==SOLID_TONE)
+          {
+          // shorten the delay on the first high tone  
+          envelope1.delay((1000/LOW_TONE_PPS_MAX)/2);
+          }
+          else 
+            {
+            envelope1.delay(tone_length/2);
+            }
+      
+      if (highTone && pps==HIGH_TONE_STALL_PPS)
+          {
+          // change tone ramp time on stall tone
+          envelope1.attack(STALL_RAMP_TIME);
+          envelope1.hold(tone_length/2-STALL_RAMP_TIME*2);
+          envelope1.decay(STALL_RAMP_TIME);
+          }
+          else
+            {
+            envelope1.attack(TONE_RAMP_TIME);
+            envelope1.hold(tone_length/2-TONE_RAMP_TIME*2);
+            envelope1.decay(TONE_RAMP_TIME);
+            }
       envelope1.sustain(0);
       envelope1.releaseNoteOn(0);
       envelope1.noteOn();
       AudioInterrupts();
+      tonePlaying=PULSE_TONE;
       }     
   toneFreq = frequency;
 }
@@ -1953,13 +2208,21 @@ AOA=testAOA;
 setAOApoints(2); // flaps down
 ASI=50; // to turn on the tones
 updateTones();
-Serial.printf("TestAOA: %0.2f, AOA: %0.2f\n",testAOA, AOA);
+//Serial.printf("TestAOA: %0.2f, AOA: %0.2f\n",testAOA, AOA);
 }
 
 
 void RangeSweep()
 {
-if (currentRangeSweepValue<RANGESWEEP_HIGH_AOA) currentRangeSweepValue+=RANGESWEEP_STEP; else currentRangeSweepValue=RANGESWEEP_LOW_AOA;
+
+if (rangeSweepDirection>0)
+    {
+    if (currentRangeSweepValue<RANGESWEEP_HIGH_AOA) currentRangeSweepValue+=RANGESWEEP_STEP; else if (currentRangeSweepValue>=RANGESWEEP_HIGH_AOA) rangeSweepDirection=-1;
+    } else
+          {
+           if (currentRangeSweepValue>RANGESWEEP_LOW_AOA) currentRangeSweepValue-=RANGESWEEP_STEP; else if (currentRangeSweepValue<=RANGESWEEP_LOW_AOA) rangeSweepDirection=1;
+          }
+
 AOA=currentRangeSweepValue;
 setAOApoints(0); // flaps down
 ASI=50; // to turn on the tones
@@ -1974,11 +2237,8 @@ void switchOnOff()
         // turn on
         analogWrite(PIN_LED2,200);
         // play turn on sound        
-        if (STARTUP_MELODY==1) playMelody(); else
-              {
-              voice1.play(AudioSampleEnabled);
-              delay (1500);
-              }        
+        voice1.play(AudioSampleEnabled);
+        delay (1500);
         switchState=true;
           
   
@@ -1989,12 +2249,8 @@ void switchOnOff()
               analogWrite(PIN_LED2,0);
               // play turn off sound
               switchState=false;                
-
-              if (STARTUP_MELODY==1) playMelody(); else
-                    {
-                    voice1.play(AudioSampleDisabled);
-                    //delay(1500);
-                    }
+              voice1.play(AudioSampleDisabled);
+              //delay(1500);
               Serial.println("Switch off");
               }
      }
@@ -2014,17 +2270,16 @@ for (int i=0; i<5;i++)
     adcvalue+=analogRead(TESTPOT_PIN);
     }
 adcvalue=adcvalue/5;
-//int adcvalue=540;
- return mapfloat(adcvalue, 0, 1023, 0, 22);
+ return mapfloat(adcvalue, 0, 1024, 0, 25);
 }
 
 
 void LogReplay()
 {
-char logLine[250];
+char logLine[384];
 char inputChar;
 int bufferIndex=0;
-String valueArray[25];
+String valueArray[45];
 int valueIndex=0;
 
 int Pfwd;
@@ -2033,8 +2288,9 @@ float PfwdPascal;
 int P45;
 float PfwdSmoothed;
 float P45Smoothed;
+#ifdef BARO
 float Pstatic=0.00;
-
+#endif
 // read next line in logfile and set airspeed and AOA from it
 
 while (SensorFile.available())
@@ -2044,7 +2300,7 @@ while (SensorFile.available())
           {
           logLine[bufferIndex]=inputChar;
           bufferIndex++;
-          if (bufferIndex==250)
+          if (bufferIndex==383)
              {
              Serial.println("Buffer overflow while reading log file, skipping to next line");
              return;
@@ -2054,20 +2310,19 @@ while (SensorFile.available())
                 // end of log line, parse it                 
                     for (int i=0;i<bufferIndex;i++)
                     {
-                    //Serial.print(logLine[i]);
                     if (logLine[i]==',') valueIndex++; else valueArray[valueIndex]+=logLine[i];
                     }
                    if (valueArray[0]=="timeStamp")
-                   {
-                   return; // skip if log header;
-                   }
-                  
+                       {
+                       Serial.println("Skipping header in logfile."); 
+                       return; // skip if log header;
+                       }
                   // simulate a sensor read cycle
                   Pfwd=valueArray[1].toInt(); // bias already removed                  
                   PfwdSmoothed=valueArray[2].toFloat();                  
                   P45=valueArray[3].toInt(); // bias already removed
                   P45Smoothed=valueArray[4].toFloat();
-                  flapsPos=valueArray[10].toInt();                  
+                  flapsPos=valueArray[9].toInt();                  
                   for (unsigned int i=0; i < (sizeof(flapDegrees) / sizeof(flapDegrees[0]));i++)
                     {
                     if (flapsPos==flapDegrees[i])
@@ -2078,7 +2333,10 @@ while (SensorFile.available())
                     }
                   setAOApoints(flapsIndex);                                    
                   calcAOA(PfwdSmoothed,P45Smoothed); // calculate AOA based on Pfwd divided by non-bias-corrected P45;                
-                 
+
+                  // efis lateralG
+                  efisLateralG=valueArray[16].toFloat();
+                  
                   // calculate airspeed
                   PfwdPascal=((PfwdSmoothed+PFWD_BIAS - 0.1*16383) * 2/(0.8*16383) -1) * 6894.757;
                   if (PfwdPascal>0)
@@ -2092,9 +2350,9 @@ while (SensorFile.available())
                   #endif
 
                   #ifdef IMU
-                  ax=valueArray[11].toFloat()/aRes;
-                  ay=valueArray[12].toFloat()/aRes;
-                  az=valueArray[13].toFloat()/aRes;
+                  ax=valueArray[10].toFloat()/aRes;
+                  ay=valueArray[11].toFloat()/aRes;
+                  az=valueArray[12].toFloat()/aRes;
                   #endif                 
                   
                   updateTones(); // generate tones                
@@ -2305,8 +2563,8 @@ void SendDisplayData()
     else
         {
         displayAOA=AOA;
-        displayPercentLift=AOA* 60/onSpeedAOA; // onSpeedAOA; // scale/align percent lift so Onspeed = 60% lift
-        percentLiftLDmax=LDmaxAOA * 60 / onSpeedAOA;
+        displayPercentLift=AOA* 60/(onSpeedAOAfast+onSpeedAOAslow)/2; // onSpeedAOA (middle of the onspeed band); // scale/align percent lift so Onspeed = 60% lift
+        percentLiftLDmax=LDmaxAOA * 60 / (onSpeedAOAfast+onSpeedAOAslow)/2;
         }
  if (isnan(Palt)) displayPalt=-1.00; else displayPalt=Palt;
 
@@ -2379,34 +2637,29 @@ for (i = 1; i < (sizeof(flapPotPositions) / sizeof(flapPotPositions[0])); i++)
 void setAOApoints(int flapIndex)
 {
 LDmaxAOA=flapLDMAXAOA[flapIndex];
-onSpeedAOA=flapONSPEEDAOA[flapIndex];
+onSpeedAOAfast=flapONSPEEDFASTAOA[flapIndex];
+onSpeedAOAslow=flapONSPEEDSLOWAOA[flapIndex];
 stallWarningAOA=flapSTALLWARNAOA[flapIndex];
 }
 
 #ifdef VOLUMECONTROL
 void readVolume()
 {
+    volPos=analogRead(VOLUME_PIN); 
+#ifdef VOLUMEDEBUG
 int volPosThreshold=2;
-volPos=analogRead(VOLUME_PIN);
-
 if (millis()-volumeStartTime>250)
     {
     float percentChange=abs((avgSlowVolPos-volPos)/10.24);
     if (percentChange>volPosThreshold)
       {
       Serial.println(volPos);
-      //Serial.println(percentChange);
+      Serial.println(percentChange);
       }
     avgSlowVolPos=volPos;
     volumeStartTime=millis();
-//Serial.print(avgFastVolPos-avgSlowVolPos);
-//Serial.print(",");
-
-
-
     }
-
-    //  Serial.println();
+#endif    
         
 LOW_TONE_VOLUME=mapfloat(volPos,VOLUME_LOW_ANALOG,VOLUME_HIGH_ANALOG,0,0.50);
 HIGH_TONE_VOLUME_MIN=mapfloat(volPos,VOLUME_LOW_ANALOG,VOLUME_HIGH_ANALOG,0,0.50);      // high tone will ramp up from min to max
