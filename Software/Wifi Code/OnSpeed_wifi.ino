@@ -8,16 +8,20 @@
 #include <WiFiAP.h>
 #include <WebServer.h>
 #include <Update.h>
-#include <WebSocketsServer.h>
+#include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets
 #include <StreamString.h>
+#include "html_header.h"
 
 #define BAUDRATE_WIFI 115200
-#define BAUDRATE_WIFI_HS 1240000
+#define BAUDRATE_WIFI_HS 921600
+//#define BAUDRATE_WIFI_HS 1240000
 
-String wifi_fw="1.2.12"; // wifi firmware version
+String wifi_fw="1.2.15"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
+String clientwifi_ssid="";
+String clientwifi_password="";
 
 // initialize live display values
 float AOA=0.0;
@@ -34,100 +38,39 @@ char serialBuffer[200];
 // initialize websocket server (live data display)
 WebSocketsServer webSocket = WebSocketsServer(81);
 
-
 typedef struct
   {
   char filename[11];
   long filesize; 
   } filetype;
 
-String pageHeader="<html>\n"
-"  <head>\n"
-"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> \n"
-"    <title>OnSpeed Gen2 WiFi gateway</title>\n"
-"    <style>\n"
-"      body { background-color: #cccccc; font-family: Arial, Helvetica, Sans-Serif; Color: #000088; }\n"
-"     ul {\n"
-"  list-style-type: none;\n"
-"  margin: 0;\n"
-"  padding: 0;\n"
-"  overflow: hidden;\n"
-"  background-color: #333;\n"
-"}\n"
-" li {\n"
-"   float: left;\n"
-"}\n"
-"li a, .dropbtn {\n"
-"  display: inline-block;\n"
-"  color: white;\n"
-"  text-align: center;\n"
-"  padding: 14px 16px;\n"
-"  text-decoration: none;\n"
-"}\n"
-"li a:hover, .dropdown:hover .dropbtn {\n"
-"  background-color: red;\n"
-"}\n"
-"li.dropdown {\n"
-"  display: inline-block;\n"
-"}\n"
-".dropdown-content {\n"
-"  display: none;\n"
-"  position: absolute;\n"
-"  background-color: #f9f9f9;\n"
-"  min-width: 160px;\n"
-"  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);\n"
-"  z-index: 1;\n"
-"}\n"
-".dropdown-content a {\n"
-"  color: black;\n"
-"  padding: 12px 16px;\n"
-"  text-decoration: none;\n"
-"  display: block;\n"
-"  text-align: left;\n"
-"}\n"
-".dropdown-content a:hover {background-color: #f1f1f1}\n"
-".dropdown:hover .dropdown-content {\n"
-"  display: block;\n"
-"}\n"
-".button {\n"
-"  background-color: red;\n"
-"  border: none;\n"
-"  color: white;\n"
-"  padding: 15px 32px;\n"
-"  text-align: center;\n"
-"  text-decoration: none;\n"
-"  display: inline-block;\n"
-"  font-size: 16px;\n"
-"  margin: 4px 25px;\n"
-"  cursor: pointer;\n"
-"}\n"
-"    </style>\n"
-"  </head>\n"
-"<body>\n"
-"  <span style=\"font-size:36px;font-weight:bold;font-family:helvetica;color:black\"><span style=\"color:red\">on</span>SPEED</span>\n"
-"  <span style=\"font-size:9px\"> FW:"+wifi_fw+"</span>\n"
-"  <ul>\n"
-"  <li><a href=\"/\">Home</a></li>\n"
-"  <li class=\"dropdown\"> \n"
-"   <a href=\"javascript:void(0)\" class=\"dropbtn\">Tools</a>\n"
-"   <div class=\"dropdown-content\">\n"
-"   <a href=\"format\">Format SD Card</a>\n"
-"   <a href=\"upgrade\">Upgrade Wifi module firmware via Wifi upload</a>\n"
-"   <a href=\"wifireflash\">Upgrade Wifi module via USB/Arduino</a>\n"
-"   <a href=\"reboot\">Reboot</a>\n"
-"   </div>\n"
-"  </li>\n"
-"  <li><a href=\"live\">LiveView</a></li>\n"
-"  <li><a href=\"logs\">Log Files</a></li> \n"
-"    </ul>\n";
- String pageFooter="</body></html>";   
+String pageHeader;
+String pageFooter="</body></html>";   
 
 WebServer server(80);
 
+void updateHeader()
+{
+pageHeader=String(htmlHeader);
+// rewrite firmware in the html header
+pageHeader.replace("wifi_fw",wifi_fw);
+// update wifi status in html header
+if (WiFi.status() == WL_CONNECTED)
+    {
+    pageHeader.replace("wifi_status","");
+    pageHeader.replace("wifi_network",clientwifi_ssid);
+    }
+    else
+      {
+      pageHeader.replace("wifi_status","offline");
+      pageHeader.replace("wifi_network","Not Connected");
+      }
+}
 
 void handleWifiReflash()
   {
   String page="";
+  updateHeader();
   page+=pageHeader;
   page+="<br><br><p>Wifi reflash mode disables the Teensy's serial port to enable reflashing the Wifi chip via its microUSB port.\
   <br><br><span style=\"color:red\">This mode is now activated until reboot.</span></p>";
@@ -139,6 +82,7 @@ void handleWifiReflash()
 void handleUpgrade()
   {
   String page="";
+  updateHeader();
   page+=pageHeader;
   page+="<br><br><p>Upgrade Wifi module firmware via binary (.bin) file upload\
   <br><br><br>";
@@ -154,6 +98,7 @@ void handleUpgrade()
 void handleUpgradeSuccess()
   {
   String page="";
+  updateHeader();
   page+=pageHeader;
   page+="<br><br><br><br><span style=\"color:black\">Firmware upgrade complete. Wait a few seconds until OnSpeed reboots.</span></p><br><br><br><br>";
    page+=pageFooter;   
@@ -163,6 +108,7 @@ void handleUpgradeSuccess()
 void handleUpgradeFailure()
   {
   String page="";
+  updateHeader();
   page+=pageHeader;
   page+="<br><br><br><br><span style=\"color:red\">Firmware upgrade failed. Power cycle OnSpeed box and try again.</span></p><br><br><br><br>";
    page+=pageFooter;
@@ -177,6 +123,7 @@ void handleFavicon()
 void handleLive()
   {
   String page="";
+  updateHeader();
   page+=pageHeader;
   page+="<style>\n"
 "html, body { margin:0; padding: 0 5px; overflow:hidden;min-height:100% }\n"
@@ -358,7 +305,8 @@ void handleLive()
 void handleFormat()
   {
    String page="";
-    page+=pageHeader;
+   updateHeader();
+   page+=pageHeader;
   if (server.arg("confirm").indexOf("yes")<0)
     {
     // display confirmation page 
@@ -374,12 +322,11 @@ void handleFormat()
            unsigned long formatStartTime=millis();
            // wait for response
           
-          while (millis()-formatStartTime<5000)
+          while (millis()-formatStartTime<10000)
             {
             if (Serial.available())
                 {
-                formatResponse=formatResponse+char(Serial.read());
-                
+                formatResponse=formatResponse+char(Serial.read());                
                 }
             }
                       
@@ -403,10 +350,140 @@ void handleFormat()
   }
 
 
+void handleWifiSettings()
+  {
+   String page="";
+   int rSSI;
+   int signalStrength;
+   //add header before sending page, with updated Wifi Status
+    // add style sheet for wifi strength bars 
+//    page+="<style>.wifibutton{background-color:#42a7f5;border:none;color:white;padding:12px 20px;text-align:center;text-decoration:none;display:inline-block;font-size:16px;margin:10px 25px;cursor:pointer;min-width:220px}\
+//    .icon__signal-strength{display:inline-flex;align-items:flex-end;justify-content:flex-end;width:auto;height:15px;padding:10px;}\
+//    .icon__signal-strength span{display:inline-block;width:4px;margin-left:2px;transform-origin:100% 100%;background-color:#fff;border-radius:2px;animation-iteration-count:1;\
+//    animation-timing-function:cubic-bezier(.17,.67,.42,1.3);animation-fill-mode:both;animation-play-state:paused}.icon__signal-strength .bar-1{height:25%;animation-duration:0.3s;animation-delay:0.1s}\
+//    .icon__signal-strength .bar-2{height:50%;animation-duration:0.25s;animation-delay:0.2s}.icon__signal-strength .bar-3{height:75%;animation-duration:0.2s;animation-delay:0.3s}.icon__signal-strength\
+//    .bar-4{height:100%;animation-duration:0.15s;animation-delay:0.4s}.signal-0 .bar-1,.signal-0 .bar-2,.signal-0 .bar-3,.signal-0 .bar-4{opacity:.2}.signal-1 .bar-2,.signal-1 .bar-3,.signal-1\
+//    .bar-4{opacity:.2}.signal-2 .bar-3,.signal-2 .bar-4{opacity:.2}.signal-3 .bar-4{opacity:.2}</style>";
+  if (server.arg("disconnect").indexOf("yes")>=0)
+      {     
+      // if connected disconnect
+                if (WiFi.status() == WL_CONNECTED)
+                    {
+                    WiFi.disconnect(true);
+                    delay(100);
+                    }
+      }
+
+  
+  
+  if (server.arg("connect").indexOf("yes")<0)
+    {
+    // display connection status and available networks
+     if (WiFi.status() == WL_CONNECTED)
+                    {
+                    page+="<br><br>Wifi Status: Connected to <strong>"+clientwifi_ssid+"</strong>";
+                    page+="<br>";
+                    page+="IP Address: "+ WiFi.localIP().toString()+"<br><br>";
+                    page+="<div align=\"center\"><a href=\"wifi?disconnect=yes\" class=\"button\">Disconnect</a></div><br><br>";
+                    }
+                    else
+                        {
+                        page+="<br><br><span style=\"color:red\">Wifi Status: Disconnected</span>";
+                        }
+    page+="<br><br>Tap a Wifi network below to connect to it:<br><br>\n";
+    int n = WiFi.scanNetworks();
+    if (n == 0) {
+                page+="<br><br>No Wifi networks found.<br><br>Reload this page to scan again.";
+                }
+                else
+                    {
+                     page+="<div align=\"center\">\n";
+                     for (int i = 0; i < n; ++i)
+                          {                         
+                          
+                          rSSI=WiFi.RSSI(i);
+                          if (rSSI > -50) signalStrength=4; else if (rSSI <= -50 && rSSI > -60) signalStrength=3; else if (rSSI <= -60 && rSSI >= -70) signalStrength=2; else signalStrength=1;
+                          page+="<a href=\"wifi?connect=yes&ssid="+WiFi.SSID(i);
+                          if (WiFi.encryptionType(i) != WIFI_AUTH_OPEN) page+="&auth=yes"; else page+="&auth=no";
+                          page+="\" class=\"wifibutton\">"+WiFi.SSID(i)+"<i class=\"icon__signal-strength signal-"+String(signalStrength)+"\"><span class=\"bar-1\"></span><span class=\"bar-2\"></span><span class=\"bar-3\"></span><span class=\"bar-4\"></span></i>";
+                          if (WiFi.encryptionType(i) != WIFI_AUTH_OPEN) page+="&#128274"; else page+="&#128275";
+                          page+="</a>";
+                          page+="<br>";                          
+                          }
+                    page+="</div>\n";      
+                    page+="<br><br>\n";
+                    page+="&#128274 - password required to connect\n";
+                    }
+    } else 
+          {
+          // connect to network
+          if (server.arg("auth").indexOf("yes")>=0)
+            {
+            // require network password
+            page+="<br><br>Enter password for "+server.arg("ssid");
+            page+="<br><br>";
+            page+="<div align=\"center\"> <form action=\"wifi?connect=yes&ssid="+server.arg("ssid")+"\" method=\"POST\"> <input type=\"text\" class=\"inputField\" name=\"password\" placeholder=\"Enter password\"><br><br>\
+            <button type=\"submit\" class=\"button\">Connect</button> </form> <br></div>";
+            }
+             else
+                {
+                // connect to network
+                clientwifi_ssid=server.arg("ssid");
+                clientwifi_password=server.arg("password");
+                // convert string to char*
+                char __clientwifi_ssid[clientwifi_ssid.length()+1];
+                char __clientwifi_password[clientwifi_password.length()+1];
+                clientwifi_ssid.toCharArray(__clientwifi_ssid,sizeof(__clientwifi_ssid));
+                clientwifi_password.toCharArray(__clientwifi_password,sizeof(__clientwifi_password));
+                Serial.println("Connecting to Wifi");
+                // if connected disconnect
+                if (WiFi.status() == WL_CONNECTED)
+                    {                
+                      unsigned long timeStart=millis();
+                      WiFi.disconnect(true);
+                      // wait for disconnect to complete
+                      while (WiFi.status() == WL_CONNECTED)
+                          {                   
+                          delay(100);
+                          if (millis()-timeStart>20000) break;
+                          }
+                    }
+                // connect to network    
+                WiFi.begin(__clientwifi_ssid, __clientwifi_password);
+                delay(100);
+                unsigned long timeStart=millis();
+                while (WiFi.status()!= WL_CONNECTED)
+                      {
+                      delay(500);
+                      if (millis()-timeStart>20000) break;
+                      }
+                      
+//                page+="password:"+clientwifi_password;
+                if (WiFi.status() == WL_CONNECTED)
+                    {
+                    Serial.println("Connected");
+                    page+="<br><br>Connected to network: <strong>"+clientwifi_ssid+"</strong>";
+                    page+="<br><br>";
+                    page+="IP Address: "+WiFi.localIP().toString();
+                    }
+                    else
+                        {
+                        page+="<br><br><span style=\"color:red\">Error: Could not connect to network: <strong>"+clientwifi_ssid+"</strong></span>";
+                        }
+                }
+          }     
+   updateHeader();
+   page=pageHeader+page;                
+   page+=pageFooter;
+   server.send(200, "text/html", page);   
+  }  
+
+
 void handleReboot()
   {
    String page="";
-    page+=pageHeader;
+   updateHeader();
+   page+=pageHeader;    
   if (server.arg("confirm").indexOf("yes")<0)
     {
     // display confirmation page 
@@ -509,9 +586,10 @@ if (content.indexOf("<filelist>")>=0 && content.indexOf("<eof>")>=0)
   
   } else filenameList="No files found.";
     
-   String page;
-   page+=pageHeader;
-   page+="<p>Available log files:</p>";  
+  String page;
+  updateHeader();
+  page+=pageHeader;
+  page+="<p>Available log files:</p>";  
   page+=filenameList;  
   page+=pageFooter;
   
@@ -521,6 +599,7 @@ if (content.indexOf("<filelist>")>=0 && content.indexOf("<eof>")>=0)
 bool handleIndex()
 {
   String page;
+   updateHeader();
    page+=pageHeader;
    page+="<br><br>\n"
 "<strong>Welcome to the OnSpeed Wifi gateway.</strong><br><br>\n"
@@ -620,22 +699,21 @@ void setup() {
   // put your setup code here, to run once:
 // Serial.begin(921600);
 Serial.begin(115200);
-
-
- Serial.setDebugOutput(false);
+Serial.setDebugOutput(false);
 
  //WIFI INIT
  //Serial.println("Starting Access Point");
+ WiFi.mode(WIFI_AP_STA);
+ //WiFi.disconnect();
  WiFi.softAP(ssid, password);
-  delay(100); // wait to init softAP
-  
-  IPAddress Ip(192, 168, 0, 1);
-  IPAddress NMask(255, 255, 255, 0);
-  WiFi.softAPConfig(Ip, Ip, NMask);
-  
-  IPAddress myIP = WiFi.softAPIP();
+ delay(100); // wait to init softAP  
+ IPAddress Ip(192, 168, 0, 1);
+ IPAddress NMask(255, 255, 255, 0);
+ WiFi.softAPConfig(Ip, Ip, NMask);  
+ IPAddress myIP = WiFi.softAPIP();
  // Serial.print("AP IP address: ");
  // Serial.println(myIP);
+ delay(100);
 
   //SERVER INIT
   
@@ -656,6 +734,11 @@ Serial.begin(115200);
   server.on("/favicon.ico", HTTP_GET, handleFavicon);
   
   server.on("/logs", HTTP_GET, handleLogs);
+
+  server.on("/wifi", HTTP_GET, handleWifiSettings);
+
+  server.on("/wifi", HTTP_POST, handleWifiSettings);  
+  
   
 
   /*handling uploading firmware file */
