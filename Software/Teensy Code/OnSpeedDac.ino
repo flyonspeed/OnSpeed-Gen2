@@ -17,7 +17,9 @@
 // OnSpeed Gen2 Teensy 3.6 code
 // More details at flyOnSpeed.org
 
-#define VERSION         "v2.1.19"  // last modified 12/27/2019 by Lenny (added 3D audio. Define and audio curve in aircraft config file)
+#define VERSION         "v2.1.20"  // last modified 1/1/2020 by Lenny (added AUDIOTEST! command to test left/right audio channels, important for 3D audio)
+                        //"v2.1.19"  // last modified 12/27/2019 by Lenny (added 3D audio. Define and audio curve in aircraft config file)
+
 
 // hardware config
 #define SDCARD // comment out to disable SD card logging
@@ -156,11 +158,8 @@ uint8_t  sectorBuffer[512];
 #include <RunningMedian.h> // https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian
 #include "AudioSampleEnabled.h"
 #include "AudioSampleDisabled.h"
-#include "AudioSampleCalibrate_flapsdown.h"
-#include "AudioSampleCalibrate_flapsup.h"
-#include "AudioSampleCalibration_canceled.h"
-#include "AudioSampleCalibration_mode.h"
-#include "AudioSampleCalibration_saved.h"
+#include "AudioSampleOnspeed_left_speaker.h"
+#include "AudioSampleOnspeed_right_speaker.h"
 
 // audio mixer config
 AudioSynthWaveformSine   sinewave1;
@@ -643,6 +642,7 @@ if (Serial.available())
 // REBOOT!
 // FLAPS!
 // VOLUME!
+// AUDIOTEST!
 serialCmdChar = Serial.read();    
   if (serialCmdChar!=char(0x21) && serialCmdChar!=char(0x0D) && serialCmdChar!=char(0x0A) && serialCmdBufferSize<50)
     {    
@@ -827,11 +827,34 @@ serialCmdChar = Serial.read();
                                                                                                             volumePotTotal+=analogRead(VOLUME_PIN);
                                                                                                             }                                                                                                            
                                                                                                           Serial.println(volumePotTotal/100);
-                                                                                                          }
+                                                                                                          } else                                                                                                          
+                                                                                                                if (strstr(serialCmdBuffer, "AUDIOTEST"))                                                                            
+                                                                                                                  {
+                                                                                                                  ToneTimer.end(); // turn off ToneTimer
+                                                                                                                  SensorTimer.end();
+                                                                                                                  Serial.println("Playing Left audio");
+                                                                                                                   AudioNoInterrupts();
+                                                                                                                   ampLeft.gain(1);
+                                                                                                                   ampRight.gain(0);
+                                                                                                                   AudioInterrupts();  
+                                                                                                                   voice1.play(AudioSampleOnspeed_left_speaker);
+                                                                                                                  delay (2500);
+                                                                                                                   AudioNoInterrupts();
+                                                                                                                   ampLeft.gain(0);
+                                                                                                                   ampRight.gain(1);
+                                                                                                                   AudioInterrupts();                                                                                                            
+                                                                                                                  Serial.println("Playing Right audio");
+                                                                                                                   voice1.play(AudioSampleOnspeed_right_speaker);
+                                                                                                                  delay (2500);
+                                                                                                                   AudioNoInterrupts();
+                                                                                                                   ampLeft.gain(1);
+                                                                                                                   ampRight.gain(1);
+                                                                                                                   AudioInterrupts();
+                                                                                                                  ToneTimer.begin(tonePlayHandler,1000000/pps); // turn ToneTimer back on 
+                                                                                                                  SensorTimer.begin(SensorRead,SENSOR_INTERVAL);
+                                                                                                                  Serial.println("AUDIOTEST Complete");
+                                                                                                                  }
 
-                                                                                                                                                                          
-
-          
           // reset cmdBuffer
           memset(serialCmdBuffer,0,sizeof(serialCmdBuffer));
           serialCmdBufferSize=0;    
