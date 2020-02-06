@@ -1,6 +1,4 @@
-This folder holds the hardware related files
-
-Hardware components list and sources:
+Hardware components list for v3 hardware and sources:
 
 Shared project on Mouser. Includes all the electronic components.\
 https://www.mouser.com/ProjectManager/ProjectDetail.aspx?AccessID=c6a6482de2
