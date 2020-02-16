@@ -25,6 +25,6 @@ We are happy to collaborate and answer any questions.  We will work with any exp
 
 More details and videos of the OnSpeed system at http://flyOnspeed.org
 
-System Diagram:
+OnSpeed Gen2 System Diagram:
 ![Onspeed System Diagram](https://github.com/flyonspeed/OnSpeed-Gen2/blob/master/Hardware/Onspeed_Gen2_system_diagram.png?raw=true)
 
