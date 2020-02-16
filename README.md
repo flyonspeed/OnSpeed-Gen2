@@ -24,3 +24,7 @@ The current Gen2 device is avionics independent. The current features include:
 We are happy to collaborate and answer any questions.  We will work with any experimenter or manufacturer that is interested in adapting the logic and always welcome qualified volunteers that want to join the project. Email us at team@flyonspeed.org to get in touch.
 
 More details and videos of the OnSpeed system at http://flyOnspeed.org
+
+System Diagram:
+![Onspeed System Diagram](https://github.com/flyonspeed/OnSpeed-Gen2/blob/master/Hardware/Onspeed_Gen2_system_diagram.png?raw=true)
+
