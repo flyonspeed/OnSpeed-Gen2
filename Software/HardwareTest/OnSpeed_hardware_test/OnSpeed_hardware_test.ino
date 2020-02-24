@@ -1,5 +1,7 @@
+// OnSpeed Hardware test v1.0
 
-// Onspeed Hardware test v1.0
+// to be compiled on Arduino 1.8.7 & TeensyLoader 1.47
+
 // FlyOnspeed.org
 //﻿DB15 pinout (Gen2 v3 hardware)
 //1 - 14V +PWR
