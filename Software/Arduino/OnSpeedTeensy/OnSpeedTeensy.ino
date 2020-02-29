@@ -271,8 +271,6 @@ uint32_t cardSectorCount = 0;
 uint8_t  sectorBuffer[512];
 
 #include "default_config.h"
-#include "rv4_config.h"
-#include "rv10_config.h"
 #include <Audio.h>      // use local Audio.h with play_sd_raw.h & play_sd_wav.h commented out for SDIO compatibility.
 #include <Gaussian.h>         // gaussian lib used for avg out AOA values.
 #include <LinkedList.h>       // linked list is also required.
