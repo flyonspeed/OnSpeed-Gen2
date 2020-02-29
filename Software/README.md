@@ -8,6 +8,6 @@ OnSpeed_hardware_test - Arduino based code that runs on the Teensy 3.6 to test n
 \
 All .ino files are compiled with Arduino 1.8.7\
 \
-The Teensy chip also requires TeensyLoader 1.47 https://www.pjrc.com/teensy/loader.html\
-
+The Teensy chip also requires TeensyLoader 1.47 https://www.pjrc.com/teensy/loader.html
+\
 All the libraries necessary to compile the above code are included in the /libraries folder.
