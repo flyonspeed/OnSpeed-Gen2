@@ -1,4 +1,4 @@
-// OnSpeed Hardware test v1.0
+// OnSpeed Hardware test v1.1
 
 // to be compiled on Arduino 1.8.7 & TeensyLoader 1.47
 
@@ -216,9 +216,13 @@ Serial.printf("Flap pot analog value: %i\n",analogRead(FLAP_PIN));
 void audioTest()
 {
  Serial.println("Testing Left audio channel");
+ ampLeft.gain(1);
+ ampRight.gain(0);
  voice1.play(AudioSampleOnspeed_left_speaker); 
  delay (2500);
  Serial.println("Testing Right audio channel");
+ ampLeft.gain(0);
+ ampRight.gain(1);
  voice1.play(AudioSampleOnspeed_right_speaker);
  delay (2500);
 }
