@@ -1,0 +1,29 @@
+#######################################
+# Syntax Coloring Map for LSM9DS1
+#######################################
+
+#######################################
+# Library (KEYWORD3)
+#######################################
+LSM9DS1_A	     KEYWORD3
+LSM9DS1_M	     KEYWORD3
+LSM9DS1_G	     KEYWORD3
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+begin	    KEYWORD2
+readX	    KEYWORD2
+readY	    KEYWORD2
+readZ	    KEYWORD2
+activate	    KEYWORD2
+deactivate	    KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+

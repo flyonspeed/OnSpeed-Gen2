@@ -1,0 +1,146 @@
+﻿Version     0.0
+Platform    Gen4-IoD-28T-P
+PlatRes     240x320
+Depends
+end
+Options
+    Arduino_uSD
+    Speed                        9600
+    Checksum                     No
+    ResponseSize                 2
+    Multidrop                    No
+    Destination                  0
+    MainForm                     0
+    SndBuf                       0
+    ButtonDisable                No
+    SignedDigits                 No
+end
+Form
+    Name                         Form1
+    Alias                        Form1
+    Bgtype                       Color
+    Color                        BLACK
+    Image                        (None)
+    Source.Height                0
+    Source.Left                  0
+    Source.Top                   0
+    Source.Width                 0
+    OnActivate                   ''
+    OnCreate                     ''
+    OnRepeat                     ''
+    OnTouchMoving                ''
+    OnTouchPressed               ''
+    OnTouchReleased              ''
+end
+Coolgauge
+    Name                         Coolgauge1
+    Alias                        Coolgauge1
+    Arc.Color                    0xFFEFE0
+    Arc.Opacity                  200
+    Arc.StartAngle               135
+    Arc.StopAngle                405
+    Threshold.Center             25
+    Threshold.Color              0xFFD0AF
+    Threshold.EndValue           100
+    Threshold.Opacity            200
+    Threshold.Span               25
+    Threshold.StartAngle         135
+    Threshold.StartValue         0
+    Threshold.SweepAngle         270
+    Threshold.ThresholdKind      Angle
+    Arc.Width                    0.03
+    CircleEndValue               360
+    CircleStartValue             0
+    DialText                     ''
+    Digit.Alignment              Center
+    Digit.BackGroundColor        SLATEGRAY
+    Digit.BackGroundOpacity      30
+    Digit.Color                  ORANGERED
+    Digit.Visible                Yes
+    DivisionColor                WHITESMOKE
+    DivisionCount                10
+    DivisionWidth                5
+    EqualDimensions              Yes
+    Font.Color                   WHITE
+    Font.Effects                 []
+    Font.Name                    Tahoma
+    Font.Size                    14
+    Font.Style                   []
+    Height                       210
+    Innercircle.Color            BLACK
+    Gloss.Color                  clWhite
+    Gloss.Opacity                72
+    Innercircle.Opacity          150
+    Left                         15
+    Logarithmic                  No
+    LogarithmicBase              10
+    MaximumValue                 100
+    MinimumValue                 0
+    Needle.Color                 ORANGERED
+    Needle.InnerCenterColor      ORANGERED
+    Needle.InnerCenterColorTo    ORANGE
+    Needle.InnerCenterOpacity    255
+    Needle.OuterCenterColor      ORANGERED
+    Needle.OuterCenterColorTo    ORANGE
+    Needle.OuterCenterOpacity    255
+    Needle.ShineColor            ORANGE
+    Needle.ShineColorTo          ORANGERED
+    OuterCircle.Color            0xFFD0AF
+    OuterCircle.Opacity          100
+    OuterCircle.Width            0.03
+    OuterRim.Color               0x908070
+    OuterRim.Opacity             255
+    OuterRim.Width               2
+    ShowValues                   Yes
+    SubDivisionColor             WHITESMOKE
+    SubDivisionCount             3
+    SubDivisionWidth             2
+    TextRendering                ClearType
+    Top                          15
+    ValueFont.Color              SILVER
+    ValueFont.Effects            []
+    ValueFont.Name               'Trebuchet MS'
+    ValueFont.Size               11
+    ValueFont.Style              [Italic]
+    ValueFormat                  0
+    Width                        210
+    OnChanged                    ''
+end
+GSlider
+    Name                         Slider1
+    Alias                        Slider1
+    Bevel.BorderColor            clBtnFace
+    Bevel.BorderWidth            0
+    Bevel.InnerColor             BLACK
+    Bevel.InnerHighlight         clBtnHighlight
+    Bevel.InnerOutline           None
+    Bevel.InnerShadow            clBtnShadow
+    Bevel.InnerSpace             1
+    Bevel.InnerStyle             Lowered
+    Bevel.Innerwidth             2
+    Bevel.OuterColor             clBtnFace
+    Bevel.OuterHighlight         clBtnHighlight
+    Bevel.OuterOutline           Outer
+    Bevel.OuterShadow            clBtnShadow
+    Bevel.OuterSpace             0
+    Bevel.OuterStyle             Raised
+    Bevel.Outerwidth             1
+    Bevel.Visible                Yes
+    BorderColor                  clBtnFace
+    BorderWidth                  1
+    Color                        BLACK
+    Height                       36
+    Left                         20
+    Maxvalue                     100
+    Minvalue                     0
+    Orientation                  Horizontal
+    Palette.High                 clLime
+    Palette.Low                  0x005100
+    Spacing                      1
+    SolidFill                    Yes
+    TickWidth                    1
+    Top                          252
+    Width                        206
+    OnChanged                    ''
+    OnChanging                   ''
+end
