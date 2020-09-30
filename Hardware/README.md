@@ -4,6 +4,9 @@ Shared project on Mouser. Includes all the electronic components.\
 https://www.mouser.com/ProjectManager/ProjectDetail.aspx?AccessID=e398d87748
 (recently updated to v 3.01, selected compatible in-stock parts)
 
+Shared project on Mouser for Volume Pot/Switch/LED combo with knob.
+https://www.mouser.com/ProjectManager/ProjectDetail.aspx?State=EDIT&ProjectGUID=8612551f-e94b-4f4c-9830-b317388885d5
+
 PCB fabricated by PcbWay.com (affordable and quick turnaround circuit boards)\
 https://www.pcbway.com/project/shareproject/OnSpeed_Gen_2_v3_0.html
 
