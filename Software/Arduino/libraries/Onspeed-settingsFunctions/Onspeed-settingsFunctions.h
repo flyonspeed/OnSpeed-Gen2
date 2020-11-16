@@ -1,3 +1,7 @@
+// ver 1.0,  modified 4/22/2020
+// Onspeed config library, shared between OnspeedSteensy & OnspeedWifi
+// flyonspeed.org
+
 bool stringToBoolean(String configString)
 {
 if (configString.toInt()==1 || configString=="YES" || configString=="ENABLED" || configString=="ON") return true; else return false;
@@ -197,6 +201,11 @@ configString+=makeConfig("SERIALEFISDATA",String(readEfisData));
 // load limit
 configString+=makeConfig("LOADLIMIT",String(loadLimit));
 
+// vno chime
+configString+=makeConfig("VNO",String(Vno));
+configString+=makeConfig("VNO_CHIME_INTERVAL",String(vnoChimeInterval));
+configString+=makeConfig("VNO_CHIME_ENABLED",String(vnoChimeEnabled));
+
 // serial out
 configString+=makeConfig("SERIALOUTFORMAT",serialOutFormat);
 configString+=makeConfig("SERIALOUTPORT",serialOutPort);
@@ -278,6 +287,11 @@ serialOutPort=getConfigValue(configString,"SERIALOUTPORT");
 
 // load limit
 loadLimit=getConfigValue(configString,"LOADLIMIT").toFloat();
+
+// vno chime
+Vno=getConfigValue(configString,"VNO").toInt();
+vnoChimeInterval=getConfigValue(configString,"VNO_CHIME_INTERVAL").toInt();
+vnoChimeEnabled=stringToBoolean(getConfigValue(configString,"VNO_CHIME_ENABLED"));
 
 // SD card logging    
 sdLoggingConfig=stringToBoolean(getConfigValue(configString,"SDLOGGING"));

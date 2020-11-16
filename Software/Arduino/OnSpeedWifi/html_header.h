@@ -519,6 +519,44 @@ section h2 {
   left: 0;
   top: 0;
   opacity: 0;
+}
+.switch-field {
+  display: flex;
+  /*margin-bottom: 5px;*/
+  overflow: hidden;
+}
+.switch-field input {
+  position: absolute !important;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  width: 1px;
+  border: 0;
+  overflow: hidden;
+}
+.switch-field label {
+  background-color: #e4e4e4;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+  padding: 8px 16px;
+  margin-right: -1px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px rgba(255, 255, 255, 0.1);
+  transition: all 0.1s ease-in-out;
+}
+.switch-field label:hover {
+  cursor: pointer;
+}
+.switch-field input:checked + label {
+  background-color: #a5dc86;
+  box-shadow: none;
+}
+.switch-field label:first-of-type {
+  border-radius: 4px 0 0 4px;
+}
+.switch-field label:last-of-type {
+  border-radius: 0 4px 4px 0;  
 }   
 </style>
   </head>
@@ -526,7 +564,7 @@ section h2 {
   <div class="header-container">
   <div class="logo"><span style="color:red">on</span>SPEED</div>
   <div class="firmware">wifi_fw</div>
-  <div class="wifi wifi_status" title="wifi_network"></div>
+  <!-- <div class="wifi wifi_status" title="wifi_network"></div> -->
   </div>
   <ul>
   <li><a href="/">Home</a></li>
@@ -542,7 +580,7 @@ section h2 {
   <li class="dropdown"> 
    <a href="javascript:void(0)" class="dropbtn">Settings</a>
    <div class="dropdown-content">
-    <a href="wifi">Wifi Connection</a>
+     <!-- <a href="wifi">Wifi Connection</a> -->
     <a href="sensorconfig">Sensor Configuration</a>
     <a href="aoaconfig">AOA Configuration</a>
     <a href="calwiz">AOA Calibration Wizard</a>

@@ -1,4 +1,5 @@
 
+// updated 9/14/2020
 // to be compiled on Arduino 1.8.7 and ESP32 Pico Kit board file (v1.0.4)
 
 ////////////////////////////////////////////////////
@@ -22,7 +23,7 @@
 #define BAUDRATE_WIFI 115200
 #define BAUDRATE_WIFI_HS 921600
 
-String wifi_fw="3.0.5"; // wifi firmware version
+String wifi_fw="3.1"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
@@ -38,7 +39,7 @@ float CRC;
 long liveDataAge=0; // millisec
 unsigned long liveDataStartTime=millis();
 int serialBufferSize=0;
-char serialBuffer[250];
+char serialBuffer[350];
 
 // initialize websocket server (live data display)
 WebSocketsServer webSocket = WebSocketsServer(81);
@@ -123,6 +124,11 @@ String portsOrientation="";
 // load factor limit
 float loadLimit;
 
+// vno chime
+int vnoChimeInterval;
+int Vno;
+bool vnoChimeEnabled;
+
 // sensor biases
 int pFwdBias;
 int p45Bias;
@@ -139,6 +145,14 @@ bool sdLoggingConfig;
 bool sdLogging; //not used here
 
 String teensyVersion="";
+
+
+// calibration wizard variables
+int acGrossWeight;
+int acEmptyWeight;
+int acCrewWeight;
+float acFuelGallons;
+int acBestGlide;
 
 #include <Onspeed-settingsFunctions.h> // library with setting functions
 
@@ -337,15 +351,19 @@ void handleLive()
   page+="<style>\n"
 "html, body { margin:0; padding: 0 5px; overflow:hidden;min-height:100% }\n"
 "#container {width:100%}  \n"
-"svg {position:absolute;margin:0 auto; display: block;height: 70vh; width:100%}\n"
+"svg {position:absolute;margin:0 auto; display: block;}\n"
 "#datafields {position:relative; margin-top:5px;font-family: \"Arial, Helvetica, sans-serif\";font-size:16px; left:0px;}\n"
-"#footer-warning {display: block;text-align: center;position:fixed;bottom: 0px; margin-left:-10px; height:20px; width: 100%;font-family: \"Arial, Helvetica, sans-serif\";font-size:12px;background-color:white}\n"
+"#footer {display: block;;position:fixed; bottom:2px; width: 100%;font-family: \"Arial, Helvetica, sans-serif\";font-size:14px;}\n"
+"#footer-warning {text-align: center;margin-left: -10px; width: 100%;font-family: \"Arial, Helvetica, sans-serif\";font-size:12px;background-color:white}\n"
+"#status {display:flex;justify-content: space-between;padding-bottom:10px;}\n"
+"#switch {margin-right: 20px;}  \n"
+"#status-label {align-self: flex-end;}  \n"
 "/*! XS */\n"
 "@media (orientation: portrait) {\n"
-"  svg {  margin: 0 auto 0 20px; }\n"
+"  svg {  margin: 0 auto 0 0px; }\n"
 "}\n"
 "@media (orientation: landscape) {\n"
-"  svg { height: 60vh;}  \n"
+" /* svg { height: 60vh;}*/  \n"
 "}\n"
 "</style>\n"
 "<script language=\"javascript\" type=\"text/javascript\">\n"
@@ -358,7 +376,8 @@ void handleLive()
 " var GLoad=1;\n"
 " var GLoadLat=0;\n"
 " var PitchAngle=0;\n"
-" var smoothingAlpha=.8;\n"
+" var RollAngle=0;\n"
+" var smoothingAlpha=.9;\n"
 " var liveConnecting=false;\n"
 "setInterval(updateAge,500); \n"
 "\n"
@@ -386,7 +405,7 @@ void handleLive()
 "\n"
 "  function onClose(evt)\n"
 "  {\n"
-"    writeToStatus(\"DISCONNECTED. Reconnecting...\");    \n"
+"    writeToStatus(\"Reconnecting...\");    \n"
 "    setTimeout(connectWebSocket, 1000);  \n"
 "  }\n"
 "  \n"
@@ -400,9 +419,27 @@ void handleLive()
 "  {    \n"
 "   // smoother values are display with the formula: value = measurement*alpha + previous value*(1-alpha)   \n"
 "   try {\n"
-"   OnSpeed = JSON.parse(evt.data);\n"
-"   var crc_string=OnSpeed.AOA+','+OnSpeed.Pitch+','+OnSpeed.IAS+','+OnSpeed.PAlt+','+OnSpeed.verticalGLoad+','+OnSpeed.lateralGLoad+','+OnSpeed.alphaVA+','+OnSpeed.LDmax+','+OnSpeed.OnspeedFast+','+OnSpeed.OnspeedSlow+','+OnSpeed.OnspeedWarn\n"
-"   //console.log(crc_string);\n"
+"   console.log(evt.data);\n"
+"   OnSpeedArray = evt.data.split(\",\");\n"
+"   var OnSpeed = new Object();\n"
+"   OnSpeed.AOA= OnSpeedArray[1]; \n"
+"   OnSpeed.Pitch= OnSpeedArray[2]; \n"
+"   OnSpeed.Roll= OnSpeedArray[3]; \n"
+"   OnSpeed.IAS= OnSpeedArray[4]; \n"
+"   OnSpeed.PAlt= OnSpeedArray[5]; \n"
+"   OnSpeed.verticalGLoad= OnSpeedArray[6]; \n"
+"   OnSpeed.lateralGLoad= OnSpeedArray[7]; \n"
+"   OnSpeed.alphaVA= OnSpeedArray[8]; \n"
+"   OnSpeed.LDmax= OnSpeedArray[9]; \n"
+"   OnSpeed.OnspeedFast= OnSpeedArray[10]; \n"
+"   OnSpeed.OnspeedSlow= OnSpeedArray[11]; \n"
+"   OnSpeed.OnspeedWarn= OnSpeedArray[12]; \n"
+"   OnSpeed.flapsPos= OnSpeedArray[13]; \n"
+"   OnSpeed.coeffP= OnSpeedArray[14]; \n"
+"   OnSpeed.dataMark= OnSpeedArray[15]; \n"
+"   OnSpeed.CRC= OnSpeedArray[16]; \n"
+"   var crc_string=OnSpeed.AOA+','+OnSpeed.Pitch+','+OnSpeed.Roll+','+OnSpeed.IAS+','+OnSpeed.PAlt+','+OnSpeed.verticalGLoad+','+OnSpeed.lateralGLoad+','+OnSpeed.alphaVA+','+OnSpeed.LDmax+','+OnSpeed.OnspeedFast+','+OnSpeed.OnspeedSlow+','+OnSpeed.OnspeedWarn+','+OnSpeed.flapsPos+','+OnSpeed.coeffP+','+OnSpeed.dataMark\n"
+"   console.log(\"CRC\",crc_string);\n"
 "   var crc_calc=0;\n"
 "   for (i=0;i<crc_string.length;i++)\n"
 "       {\n"
@@ -418,6 +455,7 @@ void handleLive()
 "    GLoad=(OnSpeed.verticalGLoad*smoothingAlpha+GLoad*(1-smoothingAlpha)).toFixed(2);\n"
 "    GLoadLat=(OnSpeed.lateralGLoad*smoothingAlpha+GLoadLat*(1-smoothingAlpha)).toFixed(2);\n"
 "    PitchAngle=(OnSpeed.Pitch*smoothingAlpha+PitchAngle*(1-smoothingAlpha)).toFixed(2);\n"
+"    RollAngle=(OnSpeed.Roll*smoothingAlpha+RollAngle*(1-smoothingAlpha)).toFixed(2);\n"
 "    LDmax=parseFloat(OnSpeed.LDmax);\n"
 "    OnspeedFast=parseFloat(OnSpeed.OnspeedFast);\n"
 "    OnspeedSlow=parseFloat(OnSpeed.OnspeedSlow);\n"
@@ -449,6 +487,8 @@ void handleLive()
 " document.getElementById(\"ldmaxleft\").setAttribute(\"cy\", ldmax_y);\n"
 " document.getElementById(\"ldmaxright\").setAttribute(\"cy\", ldmax_y);\n"
 "// show onspeed dot\n"
+"// update attitude\n"
+"updateAttitude(OnSpeed.Pitch,OnSpeed.Roll);\n"
 " if (AOA>OnspeedFast && AOA<=OnspeedSlow) document.getElementById(\"onspeeddot\").style.visibility=\"visible\"; else document.getElementById(\"onspeeddot\").style.visibility=\"hidden\"; \n"
 "   \n"
 "}  else console.log('CRC error'); \n"
@@ -465,7 +505,9 @@ void handleLive()
 "       document.getElementById(\"gload\").innerHTML=GLoad+' G';\n"
 "       document.getElementById(\"gloadLat\").innerHTML=GLoadLat+' G';\n"
 "       document.getElementById(\"pitch\").innerHTML=PitchAngle+'&#176;';\n"
-
+"       document.getElementById(\"roll\").innerHTML=RollAngle+'&#176;';\n"
+"       document.getElementById(\"datamark\").innerHTML=OnSpeed.dataMark;\n"
+"       document.getElementById(\"flapspos\").innerHTML=OnSpeed.flapsPos;\n"
 "       lastDisplay=Date.now(); \n"
 "   }\n"
 "   \n"
@@ -490,14 +532,41 @@ void handleLive()
 " \n"
 " function writeToStatus(message)\n"
 "  {\n"
-"    var status = document.getElementById(\"status\");\n"
+"    var status = document.getElementById(\"connectionstatus\");\n"
 "    status.innerHTML = message;\n"
 "  }  \n"
+" function updateAttitude(pitch,roll) {\n"
+"    roll=roll*-1;\n"
+"    var p = (pitch * 2.50);\n"
+"    var t = 'translate(50,50) rotate(' + roll + ') translate(0,' + p + ')' ;\n"
+"    var id_roll = document.querySelector('#onspeed-attitude-pos');\n"
+"    id_roll.setAttribute('transform',t);\n"
+"  var id_dial = document.querySelector('#onspeed-attitude-dial');\n"
+"  x = 50;\n"
+"    y = 50;\n"
+"    var t =  'translate(' + x + ',' + y + ')' + 'rotate(' + roll + ')';\n"
+"    id_dial.setAttribute('transform',t);   \n"
+"  }\n"
 "\n"
+"function toggleAOA(state)\n"
+"  {\n"
+"  console.log(state);\n"
+"  if (state)\n"
+"      {\n"
+"      document.getElementById(\"aoaindexer\").style.visibility=\"visible\";\n"
+"      document.getElementById(\"attitude\").style.visibility=\"hidden\";   \n"
+"      } else\n"
+"            {\n"
+"            document.getElementById(\"aoaindexer\").style.visibility=\"hidden\";\n"
+"            document.getElementById(\"attitude\").style.visibility=\"visible\";   \n"
+"            }\n"
+"}            \n"
+"updateAttitude(0,0);\n"
 "window.addEventListener(\"load\", function() {init();}, false);  \n"
 "</script>\n"
 "<div id=\"container\">\n"
-"  <svg version=\"1.1\" viewBox=\"0 0 210 297\">\n"
+"  <div id=\"aoaindexer\">\n"
+"  <svg version=\"1.1\" viewBox=\"0 0 210 297\" width=\"100%\" style=\"height: 70vh\">\n"
 " <g>\n"
 "  <circle cx=\"98.171\" cy=\"787.76\" r=\"133.84\" fill=\"#07a33f\" stroke-width=\"1.8089\"/>\n"
 "  <rect transform=\"rotate(-15.029)\" x=\"50.364\" y=\"33.747\" width=\"15.615\" height=\"89.228\" fill=\"#cc3837\"/>\n"
@@ -505,7 +574,7 @@ void handleLive()
 "  <rect transform=\"matrix(.9658 .2593 .2593 -.9658 0 0)\" x=\"127.53\" y=\"-255.15\" width=\"15.615\" height=\"89.228\" fill=\"#f49421\"/>\n"
 "  <rect transform=\"rotate(164.97)\" x=\"-70.153\" y=\"-307.83\" width=\"15.615\" height=\"89.228\" fill=\"#f49421\"/>\n"
 "  <path d=\"m101.8 113.26c-17.123 0-31.526 12.231-34.92 28.385 5.203-2.6e-4 10.398 1.6e-4 15.598 0 2.9178-7.8426 10.401-13.371 19.323-13.371 8.922 0 16.413 5.5289 19.336 13.371 5.198 1.6e-4 10.403-2.8e-4 15.602 0-3.397-16.154-17.815-28.385-34.938-28.385zm-35.121 41.774c2.9176 16.746 17.577 29.609 35.121 29.609 17.544 0 32.218-12.863 35.138-29.609-5.1216-2.8e-4 -10.25 1.6e-4 -15.371 0-2.5708 8.4824-10.391 14.574-19.767 14.574-9.3764 0-17.183-6.0913-19.75-14.574-5.1246 1.4e-4 -10.244-2.8e-4 -15.371 0z\" color=\"#000000\" color-rendering=\"auto\" dominant-baseline=\"auto\" fill=\"#07a33f\" image-rendering=\"auto\" shape-rendering=\"auto\" solid-color=\"#000000\" style=\"font-feature-settings:normal;font-variant-alternates:normal;font-variant-caps:normal;font-variant-ligatures:normal;font-variant-numeric:normal;font-variant-position:normal;isolation:auto;mix-blend-mode:normal;paint-order:markers fill stroke;shape-padding:0;text-decoration-color:#000000;text-decoration-line:none;text-decoration-style:solid;text-indent:0;text-orientation:mixed;text-transform:none;white-space:normal\"/>\n"
-"  <circle id=\"onspeeddot\" cx=\"101.8\" cy=\"148.91\" r=\"18\" fill=\"#07a33f\" stroke-width=\".81089\" visibility=\"visible\"/>\n"
+"  <circle id=\"onspeeddot\" cx=\"101.8\" cy=\"148.91\" r=\"18\" fill=\"#07a33f\" stroke-width=\".81089\" visibility=\"hidden\"/>\n"
 " </g>\n"
 " <g fill=\"#241f1c\">\n"
 "  <rect id=\"aoaline\" x=\"52.187\" y=\"144.91\" width=\"100\" height=\"6.6921\" style=\"paint-order:markers fill stroke\"/>\n"
@@ -513,17 +582,148 @@ void handleLive()
 "  <circle id=\"ldmaxright\" cx=\"157.53\" cy=\"228\" r=\"3.346\" stroke-width=\"1.0419\"/>\n"
 " </g>\n"
 "</svg>\n"
-"  <div id=\"datafields\"> Status: <span id=\"status\"></span> <br>\n"
+"</div>\n"
+"<div id=\"attitude\" style=\"visibility:hidden;\">\n"
+"  <svg id=\"onspeed-attitude\" xmlns=\"http://www.w3.org/2000/svg\" width=\"100%\" height=\"300px\" viewBox=\"0 0 100 100\">\n"
+"    <g id=\"onspeed-attitude-pos\" stroke-width=\"0.5\" stroke=\"#fff\" fill=\"#fff\"\n"
+"       transform=\"translate(50,50) rotate(0)\"\n"
+"       text-anchor='middle' font-family=\"sans-serif\" font-size=\"6\">\n"
+"  \n"
+"      <rect fill=\"#29B6F6\" stroke-width=\"0\" x=\"-100\" y=\"-200\" width=\"200\" height=\"200\"></rect>\n"
+"      <rect fill=\"#8B4513\" stroke-width=\"0\" x=\"-100\" y=\"0\"  width=\"200\" height=\"200\"></rect>\n"
+"  \n"
+"      <!-- pitch up -->\n"
+"      <line x1=\"-8\"  y1=\"-6.25\"   x2=\"8\"  y2=\"-6.25\"/>\n"
+"      <line x1=\"-16\" y1=\"-12\"     x2=\"-4\" y2=\"-12\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"-10\">5</text>\n"
+"      <line x1=\"4\"   y1=\"-12\"     x2=\"16\" y2=\"-12\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"-18.75\"  x2=\"8\"  y2=\"-18.75\"/>\n"
+"      <line x1=\"-16\" y1=\"-25\"     x2=\"-4\" y2=\"-25\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"-23\">10</text>\n"
+"      <line x1=\"4\"   y1=\"-25\"     x2=\"16\" y2=\"-25\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"-31.25\"   x2=\"8\"  y2=\"-31.25\"/>\n"
+"      <line x1=\"-16\" y1=\"-37.5\"    x2=\"-4\" y2=\"-37.5\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"-35\">15</text>\n"
+"      <line x1=\"4\"   y1=\"-37.5\"    x2=\"16\" y2=\"-37.5\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"-43.75\"   x2=\"8\"  y2=\"-43.75\"/>\n"
+"      <line x1=\"-16\" y1=\"-50.0\"    x2=\"-4\" y2=\"-50.0\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"-48\">20</text>\n"
+"      <line x1=\"4\"   y1=\"-50.0\"    x2=\"16\" y2=\"-50.0\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"-56.25\"   x2=\"8\"  y2=\"-56.25\"/>\n"
+"      <line x1=\"-16\" y1=\"-62.5\"    x2=\"-4\" y2=\"-62.5\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"-60.5\">25</text>\n"
+"      <line x1=\"4\"   y1=\"-62.5\"    x2=\"16\" y2=\"-62.5\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"-68.75\"   x2=\"8\"  y2=\"-68.75\"/>\n"
+"      <line x1=\"-16\" y1=\"-75.0\"    x2=\"-4\" y2=\"-75.0\" />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"-73\">30</text>\n"
+"      <line x1=\"4\"   y1=\"-75.0\"    x2=\"16\" y2=\"-75.0\" />\n"
+"  \n"
+"      <!-- pitch down -->\n"
+"      <line x1=\"-8\"  y1=\"6.25\"   x2=\"8\"  y2=\"6.25\"/>\n"
+"      <line x1=\"-16\" y1=\"12\"     x2=\"-4\" y2=\"12\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"14\">5</text>\n"
+"      <line x1=\"4\"   y1=\"12\"     x2=\"16\" y2=\"12\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"18.75\"   x2=\"8\"  y2=\"18.75\"/>\n"
+"      <line x1=\"-16\" y1=\"25\"     x2=\"-4\" y2=\"25\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"27\">10</text>\n"
+"      <line x1=\"4\"   y1=\"25\"     x2=\"16\" y2=\"25\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"31.25\"   x2=\"8\"  y2=\"31.25\"/>\n"
+"      <line x1=\"-16\" y1=\"37.5\"    x2=\"-4\" y2=\"37.5\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"39\">15</text>\n"
+"      <line x1=\"4\"   y1=\"37.5\"    x2=\"16\" y2=\"37.5\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"43.75\"   x2=\"8\"  y2=\"43.75\"/>\n"
+"      <line x1=\"-16\" y1=\"50.0\"    x2=\"-4\" y2=\"50.0\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"52\">20</text>\n"
+"      <line x1=\"4\"   y1=\"50.0\"    x2=\"16\" y2=\"50.0\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"56.25\"   x2=\"8\"  y2=\"56.25\"/>\n"
+"      <line x1=\"-16\" y1=\"62.5\"    x2=\"-4\" y2=\"62.5\"  />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"64.5\">25</text>\n"
+"      <line x1=\"4\"   y1=\"62.5\"    x2=\"16\" y2=\"62.5\"  />\n"
+"  \n"
+"      <line x1=\"-8\"  y1=\"68.75\"   x2=\"8\"  y2=\"68.75\"/>\n"
+"      <line x1=\"-16\" y1=\"75.0\"    x2=\"-4\" y2=\"75.0\" />\n"
+"      <text stroke-width=\"0.1\" x=\"0\" y=\"77\">30</text>\n"
+"      <line x1=\"4\"   y1=\"75.0\"    x2=\"16\" y2=\"75.0\" />\n"
+"  \n"
+"    </g>\n"
+"    <g stroke-width=\"2\" stroke=\"#ff0\">\n"
+"    <line x1=\"30\" y1=\"50\" x2=\"43\" y2=\"50\"></line>\n"
+"    <line x1=\"42\" y1=\"50\" x2=\"42\" y2=\"53\"></line>\n"
+"  \n"
+"    <line  x1=\"49\" y1=\"50\" x2=\"51\" y2=\"50\"/>\n"
+"  \n"
+"    <line x1=\"58\" y1=\"53\" x2=\"58\" y2=\"50\"></line>\n"
+"    <line x1=\"57\" y1=\"50\" x2=\"70\" y2=\"50\"></line>\n"
+"    </g>  \n"
+"  <g id='onspeed-attitude-dial' stroke-width=\"1\" transform=\"translate(50,49) rotate(0)\" stroke=\"#fff\">\n"
+"      <line stroke-width='1.5' x1='20.00' y1='-34.64' x2='24.50' y2='-42.44' />\n"
+"      <line stroke-width='1.5' x1='34.64' y1='-20.00' x2='42.44' y2='-24.50' />\n"
+"      <line stroke-width='1.5' x1='40.00' y1='0.00' x2='49.00' y2='0.00' />\n"
+"      <line stroke-width='1.5' x1='-20.00' y1='-34.64' x2='-24.50' y2='-42.44' />\n"
+"      <line stroke-width='1.5' x1='-34.64' y1='-20.00' x2='-42.44' y2='-24.50' />\n"
+"      <line stroke-width='1.5' x1='-40.00' y1='-0.00' x2='-49.00' y2='-0.00' />\n"
+"      <line x1='6.95' y1='-39.39' x2='7.81' y2='-44.32' />\n"
+"      <line x1='13.68' y1='-37.59' x2='15.39' y2='-42.29' />\n"
+"      <line x1='28.28' y1='-28.28' x2='31.82' y2='-31.82' />\n"
+"      <line x1='-6.95' y1='-39.39' x2='-7.81' y2='-44.32' />\n"
+"      <line x1='-13.68' y1='-37.59' x2='-15.39' y2='-42.29' />\n"
+"      <line x1='-28.28' y1='-28.28' x2='-31.82' y2='-31.82' />\n"
+"      <line x1='0.00' y1='-40.00' x2='0.00' y2='-45.00' />\n"
+"  \n"
+"      <path fill=\"#fff\" d=\"M-4 -50 L4 -50 L 0 -40 z\"></path>\n"
+"    </g>  \n"
+"  \n"
+"    <g stroke-width=\"1\" stroke=\"#ff0\" fill=\"#ff0\">\n"
+"      <path d=\"M46 18 L54 18 L50 11 z\"></path>\n"
+"    </g>\n"
+"\n"
+"  </svg>\n"
+"  \n"
+"  </div>\n"
+"\n"
+"  <div id=\"datafields\"></span>\n"
 "    AOA: <span id=\"aoa\"></span> <br>\n"
 "    IAS: <span id=\"ias\"></span> <br>\n"
 "    P Alt: <span id=\"palt\"></span> <br>\n"
 "    Vert G: <span id=\"gload\"></span> <br>\n"
 "    Lat G: <span id=\"gloadLat\"></span> <br>\n"
 "    Pitch: <span id=\"pitch\"></span> <br>\n"
+"    Roll: <span id=\"roll\"></span> <br>\n"
+"    DataMark: <span id=\"datamark\"></span> <br>\n"
+"    Flaps: <span id=\"flapspos\"></span> <br>\n"
 "    Age: <span id=\"age\"></span> <br>\n"
 "  </div>\n"
-"  <div id=\"footer-warning\">For diagnostic purposes only. NOT SAFE FOR FLIGHT</div>\n"
-"</div>\n";
+"  <div id=\"footer\">\n"
+"    <div id=\"status\">\n"
+"     <div id=\"status-label\">\n"
+"       <strong>Status:</strong> <span id=\"connectionstatus\">DISCONNECTED.</span>\n"
+"     </div>\n"
+"     <div id=\"switch\">\n"
+"     <div class=\"switch-field\">\n"
+"     <input type=\"radio\" id=\"switchAOA\" name=\"toggleAOA\"  onClick=\"toggleAOA(true)\" value=\"yes\" checked/>\n"
+"     <label for=\"switchAOA\">AOA</label>\n"
+"     <input type=\"radio\" id=\"switchAHRS\" name=\"toggleAOA\" onClick=\"toggleAOA(false)\" value=\"no\" />\n"
+"     <label for=\"switchAHRS\">AHRS</label>\n"
+"   </div>\n"
+"   </div>\n"
+"   </div>\n"
+"   \n"
+"   <div id=\"footer-warning\">  \n"
+"   For diagnostic purposes only. NOT SAFE FOR FLIGHT\n"
+"   </div>\n"
+"  </div>\n"
+"</div>\n"
+"<script>init()</script>\n"
+;
   page+=pageFooter;
   server.send(200, "text/html", page); 
   }  
@@ -616,10 +816,96 @@ void handleFormat()
 
 void handleCalWizard() 
   {
+   String wizardStep="";
+   if (server.hasArg("step") && server.arg("step")!="") wizardStep=server.arg("step");
    String page="";
-   updateHeader();
-   page+=pageHeader;
-   page+="<br><br>Not yet implemented. Calibration Wizard coming soon.";
+   updateHeader();   
+   page+=pageHeader;   
+   page+="<br><br><b>Calibration Wizard</b><br><br>";
+   // start (get parameters for calibration) -> stalls -> flysetpoints -> verifysetpoints -> done (next flap setting).
+
+   if (wizardStep=="")
+   {
+   page+="This wizard will guide you through the calibration process and test flight.<br><br>\
+          Here's how it works:<br>\
+          <b>Step 1.</b><br>\
+          Enter aircraft parameters (weight, speeds, etc)<br>\
+          <b>Step 2.</b><br>\
+          Fly a stall with flaps up.<br>\
+          <b>Step 3.</b><br>\
+          Fly 4 airspeeds (calculated based on stall speed and current weight) with flaps up.<br>\
+          <b>Step 5.</b><br>\
+          Verify tone at the aispeeds flown in Step 4.<br>\
+          <b>Step 6.</b><br>\
+          Start again from step 2 with the next flap setting.<br>\
+          <br><br>\
+          Your data is saved after each flap setting, so you can continue during another flight.<br><br>\
+          <a href=\"/calwiz?step=start\" class=\"button\">Start Calibration Wizard.</a>\
+          <br>\
+          ";
+   } else
+   
+   if  (wizardStep=="start")
+   {
+   page+="Enter the following aircraft parameters:<br>\
+          <div class=\"content-container\">\
+            <form  id=\"id_configWizStartForm\" action=\"calwiz?step=stall\" method=\"GET\">\
+            <div class=\"form round-box\">\
+                <div class=\"form-divs flex-col-12\">\
+                <label>Aircraft gross weight (lbs)</label>\
+                <input class=\"inputField\" type=\"text\" name=\"acGrossWeight\" value=\""+ String(acGrossWeight)+"\">\
+                </div>\
+                <div class=\"form-divs flex-col-12\">\
+                <label>Aircraft empty weight (lbs)</label>\
+                <input class=\"inputField\" type=\"text\" name=\"acEmptyWeight\" value=\""+ String(acEmptyWeight)+"\">\
+                </div>\
+                <div class=\"form-divs flex-col-12\">\
+                <label>Total crew weight (lbs)</label>\
+                <input class=\"inputField\" type=\"text\" name=\"acCrewWeight\" value=\""+ String(acCrewWeight)+"\">\
+                </div>\
+                <div class=\"form-divs flex-col-12\">\
+                <label>Best glide airspeed at gross weight (KIAS)</label>\
+                <input class=\"inputField\" type=\"text\" name=\"acBestGlideIAS\" value=\""+ String(acBestGlide)+"\">\
+                </div>\
+                <br><br><br>\
+                <div class=\"form-divs flex-col-6\">\
+                <a href=\"/\">Cancel</a>\
+                </div>\
+                <div class=\"form-divs flex-col-6\">\
+                <button type=\"submit\" class=\"button\">Continue to Stalls</button>\
+                </div>\
+          </div>\
+          </form>\
+        </div>";
+   } else
+   if  (wizardStep=="stall")
+   {
+   page+="Get ready to fly stalls. You can select a flap setting any time. Flap position will be detected at the time of the stall happening.<br>\
+          <b>Requirements:</b>\
+          <br><br>\
+          1. Fly the stall at a steady 1kt/sec deceleration (Onspeed provides feedback)\
+          2. Keep the ball in the middle and wings level at all times\
+          3. Do not pull up abruptly into the stall. Get into it smoothly.\
+          <br><br>\
+          After detecting the stall OnSpeed will grade it and let you know if it was flown correctly.\
+          <br><br>\
+          Ready? Set your flap position now, hit the Start button bellow, decelerate and fly the stall.\
+          You don't need to press anything, the stall will be auto-detected.\
+          <br><br>\
+          <form action=\"calwiz?step=flystall\" method=\"GET\">\
+          <label>Current fuel on board (gallons)</label>\
+          <input class=\"inputField\" type=\"text\" name=\"acFuelGallons\" value=\""+ String(acFuelGallons)+"\">\
+          <br>\
+          <br><br><br>\
+          <button type=\"submit\" class=\"button\">Start flying a stall</button>\
+          <a href=\"/\">Cancel</a>\
+          </form>";
+   }
+   
+   
+
+
+   
    page+=pageFooter;
    server.send(200, "text/html", page);
   } 
@@ -732,7 +1018,7 @@ for (unsigned int i=0; i<stringToSend.length();i++)
 {
 Serial.print(stringToSend[i]);
 unsigned long delayTimer=micros();
-while (micros()-delayTimer<200) {}; // transmit to delay to avoid output buffer overrun
+while (micros()-delayTimer<200) {}; // transmit delay to avoid output buffer overrun
 }
 
 unsigned long starttime=millis();
@@ -764,6 +1050,8 @@ bool rebootRequired=false;
 String errorMessage="";
 int flapCurvesCount=0;
 if (server.hasArg("aoaSmoothing")) aoaSmoothing=server.arg("aoaSmoothing").toInt();
+if (aoaSmoothing!=server.arg("aoaSmoothing").toInt()) rebootRequired=true;
+
 if (server.hasArg("pressureSmoothing")) pressureSmoothing=server.arg("pressureSmoothing").toInt();
 if (server.hasArg("dataSource"))
     {
@@ -849,6 +1137,10 @@ if (server.hasArg("audio3D") && server.arg("audio3D")=="1") audio3D=true; else a
 if (server.hasArg("overgWarning") && server.arg("overgWarning")=="1") overgWarning=true; else overgWarning=false;
 // loadLimit    
 if (server.hasArg("loadLimit")) loadLimit=server.arg("loadLimit").toFloat();
+// vnochime
+if (server.hasArg("vnoChimeEnabled") && (server.arg("vnoChimeEnabled")=="1")) vnoChimeEnabled=true; else vnoChimeEnabled=false;
+if (server.hasArg("Vno")) Vno=server.arg("Vno").toInt();
+if (server.hasArg("vnoChimeInterval")) vnoChimeInterval=server.arg("vnoChimeInterval").toInt();
 // serialOutFormat
 if (server.hasArg("serialOutFormat")) serialOutFormat=server.arg("serialOutFormat");
 //serialOutPort
@@ -952,7 +1244,7 @@ function getValue(senderID, valueName,targetID)\
  {\
   senderOriginalValue=document.getElementById(senderID).value;\
   document.getElementById(senderID).disabled = true;\
-  if (valueName==\"AUDIOTEST\")\
+  if (valueName==\"AUDIOTEST\" || valueName==\"VNOCHIMETEST\")\
         {\
         document.getElementById(senderID).value=\"Testing...\";\
         } else\
@@ -964,7 +1256,7 @@ function getValue(senderID, valueName,targetID)\
     if (this.readyState == 4 && this.status == 200 && senderID!='') {\
     if (this.responseText.indexOf(\"<\"+valueName+\">\")>=0)\
       {\
-      if (valueName==\"AUDIOTEST\")\
+      if (valueName==\"AUDIOTEST\" || valueName==\"VNOCHIMETEST\")\
         {\
         document.getElementById(senderID).value=senderOriginalValue;\
         } else\
@@ -1370,7 +1662,30 @@ page+="<div class=\"content-container\">\
                   <option value=\"1\""; if (overgWarning) page+=" selected"; page+=">Enabled</option>\
                   <option value=\"0\""; if (!overgWarning) page+=" selected"; page+=">Disabled</option>\
                 </select>\
-              </div>";            
+              </div>";
+            // vno chime
+            String vnoVisibility;
+            if (vnoChimeEnabled) vnoVisibility="style=\"display:block\""; else vnoVisibility="style=\"display:none\"";
+            page+="<div class=\"form-divs flex-col-12\">\
+                <label for=\"id_vnoChimeEnabled\">Vno warning chime</label>\
+                <select id=\"id_vnoChimeEnabled\" name=\"vnoChimeEnabled\">\
+                  <option value=\"1\""; if (vnoChimeEnabled) page+=" selected"; page+=">Enabled</option>\
+                  <option value=\"0\""; if (!vnoChimeEnabled) page+=" selected"; page+=">Disabled</option>\
+                </select>\
+            </div>\
+            <div class=\"form-divs flex-col-5 vnochimesetting\" "+String(vnoVisibility)+">\
+                <label for=\"id_Vno\">Aircraft Vno (kts)</label>\
+                <input id=\"id_Vno\" name=\"Vno\" type=\"text\" value=\""+String(Vno)+"\"/>\
+              </div>\
+              <div class=\"form-divs flex-col-5 vnochimesetting\" "+String(vnoVisibility)+">\
+                <label for=\"id_vnoChimeInterval\">Chime interval (seconds)</label>\
+                <input id=\"id_vnoChimeInterval\" name=\"vnoChimeInterval\" type=\"text\" value=\""+String(vnoChimeInterval)+"\"/>\
+              </div>\
+              <div class=\"form-divs flex-col-2 vnochimesetting\" "+String(vnoVisibility)+">\
+                <label for=\"id_chimeTestButton\">&nbsp</label>\
+                <input id=\"id_chimeTestButton\" name=\"chimeTestButton\" type=\"button\" value=\"Test\" class=\"greybutton\" onclick=\"getValue(this.id,\'VNOCHIMETEST\',\'\')\"/>\
+              </div>";
+              
             //sensor biases                      
               page+="<!--\
               <div class=\"form-divs flex-col-12\">\
@@ -1407,6 +1722,7 @@ page+="<div class=\"content-container\">\
                 <label for=\"id_serialOutPort\">Serial out port</label>\
                 <select id=\"id_serialOutPort\" name=\"serialOutPort\">\
                   <option value=\"NONE\""; if (serialOutPort=="NONE") page+=" selected"; page+=">None</option>\
+                  <option value=\"Serial1\""; if (serialOutPort=="Serial1") page+=" selected"; page+=">Serial 1 (TTL - pin 12, v2 only!)</option>\
                   <option value=\"Serial3\""; if (serialOutPort=="Serial3") page+=" selected"; page+=">Serial 3 (RS232 - pin 12)</option>\
                   <option value=\"Serial5\""; if (serialOutPort=="Serial5") page+=" selected"; page+=">Serial 5 (TTL - pin 9)</option>\
                 </select>\
@@ -1472,7 +1788,20 @@ page+="<div class=\"content-container\">\
                 document.getElementById(\'volumeControlDiv\').classList.remove('flex-col-9');\
                 document.getElementById(\'volumeControlDiv\').classList.add('flex-col-6');\
                 }\
-        };";           
+        };";
+
+// hide Vno settings if Vno chime is disabed
+  page+="document.getElementById(\'id_vnoChimeEnabled\').onchange = function() {\
+          if (document.getElementById(\'id_vnoChimeEnabled\').value==1)\
+            {\
+            [].forEach.call(document.querySelectorAll(\'.vnochimesetting\'), function (el) {el.style.display = \'block\';});\
+            }\
+             else\
+                 {\
+                 [].forEach.call(document.querySelectorAll(\'.vnochimesetting\'), function (el) {el.style.display = \'none\';});\
+                 }\
+          };";        
+                   
 // hide log file when replaylogfile not set
         page+="document.getElementById(\'id_dataSource\').onchange = function() {\
           if (document.getElementById(\'id_dataSource\').value==\'REPLAYLOGFILE\')\
@@ -2073,14 +2402,15 @@ if (Serial.available())
   {
   // data format
   // $ONSPEED,AOA,PercentLift,IAS,PAlt,GLoad,CRC   
-   char serialChar = Serial.read();   
-  if (serialChar!='{' && serialChar!=char(0x0D) && serialChar!=char(0x0A) && serialBufferSize<250)
+  int maxCharsInLine=350;
+  char serialChar = Serial.read();   
+  if (serialChar!='$' && serialChar!=char(0x0D) && serialChar!=char(0x0A) && serialBufferSize < maxCharsInLine)
     {    
     serialBuffer[serialBufferSize]=serialChar;
     serialBufferSize++;
     } else
           {
-           if (serialChar=='{')  // catch start of json data line
+           if (serialChar=='$')  // catch start of json data line
               {
               // start of new line, drop the buffer
               serialBufferSize=0;
@@ -2095,8 +2425,8 @@ if (Serial.available())
                 {
                 dataString+=serialBuffer[k];
                 }            
-            // verify if line starting with $$ONSPEED
-            if (dataString.startsWith("{\"type\":\"ONSPEED\""))
+            // verify if line starting with $ONSPEED
+            if (dataString.startsWith("$ONSPEED"))
               {              
               // send to websocket if there are any clients waiting
               if (webSocket.connectedClients(false)>0)  webSocket.broadcastTXT(dataString);
@@ -2104,14 +2434,12 @@ if (Serial.available())
             // drop buffer after sending
             serialBufferSize=0;
             }
-           if (serialBufferSize>=250)
+           if (serialBufferSize >= maxCharsInLine)
               {
               // too much junk received, drop buffer
               serialBufferSize=0;               
               }
           }
-
-
   
   }
  
