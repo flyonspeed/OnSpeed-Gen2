@@ -1065,7 +1065,8 @@ serialCmdChar = Serial.read();
                                                                   long PfwdTotal=0;
                                                                   long P45Total=0;
                                                                   for (int i=1;i<=1000;i++)
-                                                                      {
+                                                                      {                                                                      
+                                                                      if (i%250==0) watchdogRefresh();
                                                                       PfwdTotal+=GetPressurePfwd();
                                                                       P45Total+=GetPressureP45();
                                                                       delay(10);
