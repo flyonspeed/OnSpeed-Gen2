@@ -581,7 +581,7 @@ section h2 {
    <a href="javascript:void(0)" class="dropbtn">Settings</a>
    <div class="dropdown-content">
      <!-- <a href="wifi">Wifi Connection</a> -->
-    <a href="sensorconfig">Sensor Configuration</a>
+    <a href="sensorconfig">Sensor Calibration</a>
     <a href="aoaconfig">AOA Configuration</a>
     <a href="calwiz">AOA Calibration Wizard</a>
    </div>     

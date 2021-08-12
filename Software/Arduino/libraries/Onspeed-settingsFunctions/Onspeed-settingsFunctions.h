@@ -1,4 +1,4 @@
-// ver 1.0,  modified 4/22/2020
+// ver 3.2.1,  modified 5/25/2020
 // Onspeed config library, shared between OnspeedSteensy & OnspeedWifi
 // flyonspeed.org
 
@@ -15,7 +15,8 @@ return  atof(string.c_str());
 String floatToString(float value)
 {
 char floatBuffer[20];
-sprintf(floatBuffer,"%.3f",value);
+// save config float values with 4 digit precision
+sprintf(floatBuffer,"%.4f",value);
 return String (floatBuffer);
 }
 
@@ -172,13 +173,11 @@ for (int i=0;i<flapDegrees.Count;i++)
 {
 configString+=makeConfig("AOA_CURVE_FLAPS"+String(i),curve2string(aoaCurve[i]));
 }
-// boom curves
-configString+=makeConfig("BOOM_ALPHA_CURVE",curve2string(boomAlphaCurve));
-configString+=makeConfig("BOOM_BETA_CURVE",curve2string(boomBetaCurve));
-configString+=makeConfig("BOOM_STATIC_CURVE",curve2string(boomStaticCurve));
-configString+=makeConfig("BOOM_DYNAMIC_CURVE",curve2string(boomDynamicCurve));
+
 // CAS curve
 configString+=makeConfig("CAS_CURVE",curve2string(casCurve));
+configString+=makeConfig("CAS_ENABLED",String(casCurveEnabled));
+
 
 configString+=makeConfig("PORTS_ORIENTATION",portsOrientation);
 configString+=makeConfig("BOX_TOP_ORIENTATION",boxtopOrientation);
@@ -192,6 +191,7 @@ configString+=makeConfig("GX_BIAS",floatToString(gxBias));
 configString+=makeConfig("GY_BIAS",floatToString(gyBias));
 configString+=makeConfig("GZ_BIAS",floatToString(gzBias));
 configString+=makeConfig("PITCH_BIAS",floatToString(pitchBias));
+configString+=makeConfig("ROLL_BIAS",floatToString(rollBias));
 
 
 // serial inputs
@@ -199,7 +199,9 @@ configString+=makeConfig("BOOM",String(readBoom));
 configString+=makeConfig("SERIALEFISDATA",String(readEfisData));
 
 // load limit
-configString+=makeConfig("LOADLIMIT",String(loadLimit));
+configString+=makeConfig("LOADLIMITPOSITIVE",String(loadLimitPositive));
+configString+=makeConfig("LOADLIMITNEGATIVE",String(loadLimitNegative));
+
 
 // vno chime
 configString+=makeConfig("VNO",String(Vno));
@@ -255,14 +257,12 @@ for (int i=0;i<flapDegrees.Count;i++)
 aoaCurve[i]=parseCurveCSV(getConfigValue(configString,"AOA_CURVE_FLAPS"+String(i)));
 }
 
-// boom curves
-boomAlphaCurve=parseCurveCSV(getConfigValue(configString,"BOOM_ALPHA_CURVE"));
-boomBetaCurve=parseCurveCSV(getConfigValue(configString,"BOOM_BETA_CURVE"));
-boomStaticCurve=parseCurveCSV(getConfigValue(configString,"BOOM_STATIC_CURVE"));
-boomDynamicCurve=parseCurveCSV(getConfigValue(configString,"BOOM_DYNAMIC_CURVE"));
 
 //CAS curve
 casCurve=parseCurveCSV(getConfigValue(configString,"CAS_CURVE"));
+casCurveEnabled=stringToBoolean(getConfigValue(configString,"CAS_ENABLED"));
+
+
 
 portsOrientation=getConfigValue(configString,"PORTS_ORIENTATION");
 boxtopOrientation=getConfigValue(configString,"BOX_TOP_ORIENTATION");
@@ -276,6 +276,7 @@ gxBias=stringToFloat(getConfigValue(configString,"GX_BIAS"));
 gyBias=stringToFloat(getConfigValue(configString,"GY_BIAS"));
 gzBias=stringToFloat(getConfigValue(configString,"GZ_BIAS"));
 pitchBias=stringToFloat(getConfigValue(configString,"PITCH_BIAS"));
+rollBias=stringToFloat(getConfigValue(configString,"ROLL_BIAS"));
 
 // serial inputs
 readBoom=stringToBoolean(getConfigValue(configString,"BOOM"));
@@ -286,7 +287,9 @@ serialOutFormat=getConfigValue(configString,"SERIALOUTFORMAT");
 serialOutPort=getConfigValue(configString,"SERIALOUTPORT");
 
 // load limit
-loadLimit=getConfigValue(configString,"LOADLIMIT").toFloat();
+loadLimitPositive=getConfigValue(configString,"LOADLIMITPOSITIVE").toFloat();
+loadLimitNegative=getConfigValue(configString,"LOADLIMITNEGATIVE").toFloat();
+
 
 // vno chime
 Vno=getConfigValue(configString,"VNO").toInt();
