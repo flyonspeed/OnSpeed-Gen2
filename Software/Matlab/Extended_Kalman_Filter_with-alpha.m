@@ -1,4 +1,5 @@
-% Matlab Code for OnSpeed AHRS. (C) lenny Iszak & FlyOnspeed Inc.
+% Matlab Code for OnSpeed AHRS. (C) Lenny Iszak & FlyOnspeed Inc.
+% Fuses Baro, Airspeed, Accerometers and Gyros for a full attitude solution including inertial AOA.
 % Not for commercial use. 
 % Not flight tested, use at your own risk.
 % Needs flight test based tuning.
