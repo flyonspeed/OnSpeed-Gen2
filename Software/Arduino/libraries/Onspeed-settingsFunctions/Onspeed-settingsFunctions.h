@@ -1,5 +1,5 @@
 // ver 3.2.1,  modified 5/25/2020
-// Onspeed config library, shared between OnspeedSteensy & OnspeedWifi
+// Onspeed config library, shared between OnspeedTeensy & OnspeedWifi
 // flyonspeed.org
 
 bool stringToBoolean(String configString)
@@ -105,7 +105,15 @@ return configString.substring(startIndex+configName.length()+2,endIndex);
 
 String makeConfig(String configName,String configValue)
 {
-return "<"+configName+">"+configValue+"</"+configName+">\n";
+String resultString="<";
+resultString.concat(configName);
+resultString.concat(">");
+resultString.concat(configValue);
+resultString.concat("</");
+resultString.concat(configName);
+resultString.concat(">\n");
+return resultString;
+//return "<"+configName+">"+configValue+"</"+configName+">\n";
 }
 
 String curve2string(calibrationCurve configArray)
@@ -113,8 +121,8 @@ String curve2string(calibrationCurve configArray)
 String result="";  
 for (int i=0;i < MAX_CURVE_COEFF;i++)
     {
-    result+=floatToString(configArray.Items[i]);
-    result+=",";
+    result.concat(floatToString(configArray.Items[i]));
+    result.concat(",");
     }
 // add curveType to the end
 result+=String(configArray.curveType);
@@ -126,8 +134,8 @@ String float_array2string(floatArray configArray)
 String result="";  
 for (int i=0;i < configArray.Count;i++)
     {
-    result+=floatToString(configArray.Items[i]);
-    if (i<configArray.Count-1) result+=",";
+    result.concat(floatToString(configArray.Items[i]));
+    if (i<configArray.Count-1) result.concat(",");
     }
 return result;    
 }
@@ -138,88 +146,84 @@ String int_array2string(intArray configArray)
 String result="";  
 for (int i=0;i < configArray.Count;i++)
     {
-    result+=configArray.Items[i];
-    if (i<configArray.Count-1) result+=",";
+    result.concat(configArray.Items[i]);
+    if (i<configArray.Count-1) result.concat(",");
     }
 return result;     
 }
 
-String configurationToString()
+void configurationToString(String &configString)
 {
-String configString="<CONFIG>\n";
-configString+=makeConfig("AOA_SMOOTHING",String(aoaSmoothing));
-configString+=makeConfig("PRESSURE_SMOOTHING",String(pressureSmoothing));
+configString="<CONFIG>\n";
+configString.concat(makeConfig("AOA_SMOOTHING",String(aoaSmoothing)));
+configString.concat(makeConfig("PRESSURE_SMOOTHING",String(pressureSmoothing)));
 
-configString+=makeConfig("DATASOURCE",String(dataSource));
-configString+=makeConfig("REPLAYLOGFILENAME",String(replayLogFileName));
-configString+=makeConfig("FLAPDEGREES",int_array2string(flapDegrees));
-configString+=makeConfig("FLAPPOTPOSITIONS",int_array2string(flapPotPositions));
+configString.concat(makeConfig("DATASOURCE",String(dataSource)));
+configString.concat(makeConfig("REPLAYLOGFILENAME",String(replayLogFileName)));
+configString.concat(makeConfig("FLAPDEGREES",int_array2string(flapDegrees)));
+configString.concat(makeConfig("FLAPPOTPOSITIONS",int_array2string(flapPotPositions)));
 
-configString+=makeConfig("VOLUMECONTROL",String(volumeControl));
-configString+=makeConfig("VOLUME_HIGH_ANALOG",String(volumeHighAnalog));
-configString+=makeConfig("VOLUME_LOW_ANALOG",String(volumeLowAnalog));
-configString+=makeConfig("VOLUME_DEFAULT",String(defaultVolume));
-configString+=makeConfig("3DAUDIO",String(audio3D));
-configString+=makeConfig("MUTE_AUDIO_UNDER_IAS",String(muteAudioUnderIAS));
-configString+=makeConfig("OVERGWARNING",String(overgWarning));
+configString.concat(makeConfig("VOLUMECONTROL",String(volumeControl)));
+configString.concat(makeConfig("VOLUME_HIGH_ANALOG",String(volumeHighAnalog)));
+configString.concat(makeConfig("VOLUME_LOW_ANALOG",String(volumeLowAnalog)));
+configString.concat(makeConfig("VOLUME_DEFAULT",String(defaultVolume)));
+configString.concat(makeConfig("3DAUDIO",String(audio3D)));
+configString.concat(makeConfig("MUTE_AUDIO_UNDER_IAS",String(muteAudioUnderIAS)));
+configString.concat(makeConfig("OVERGWARNING",String(overgWarning)));
 
-configString+=makeConfig("SETPOINT_LDMAXAOA",float_array2string(flapLDMAXAOA));
-configString+=makeConfig("SETPOINT_ONSPEEDFASTAOA",float_array2string(flapONSPEEDFASTAOA));
-configString+=makeConfig("SETPOINT_ONSPEEDSLOWAOA",float_array2string(flapONSPEEDSLOWAOA));
-configString+=makeConfig("SETPOINT_STALLWARNAOA",float_array2string(flapSTALLWARNAOA));
+configString.concat(makeConfig("SETPOINT_LDMAXAOA",float_array2string(flapLDMAXAOA)));
+configString.concat(makeConfig("SETPOINT_ONSPEEDFASTAOA",float_array2string(flapONSPEEDFASTAOA)));
+configString.concat(makeConfig("SETPOINT_ONSPEEDSLOWAOA",float_array2string(flapONSPEEDSLOWAOA)));
+configString.concat(makeConfig("SETPOINT_STALLWARNAOA",float_array2string(flapSTALLWARNAOA)));
 // total flap curves
 // to get number of curves count flap stops
 for (int i=0;i<flapDegrees.Count;i++)
 {
-configString+=makeConfig("AOA_CURVE_FLAPS"+String(i),curve2string(aoaCurve[i]));
+configString.concat(makeConfig("AOA_CURVE_FLAPS"+String(i),curve2string(aoaCurve[i])));
 }
-
 // CAS curve
-configString+=makeConfig("CAS_CURVE",curve2string(casCurve));
-configString+=makeConfig("CAS_ENABLED",String(casCurveEnabled));
+configString.concat(makeConfig("CAS_CURVE",curve2string(casCurve)));
+configString.concat(makeConfig("CAS_ENABLED",String(casCurveEnabled)));
 
 
-configString+=makeConfig("PORTS_ORIENTATION",portsOrientation);
-configString+=makeConfig("BOX_TOP_ORIENTATION",boxtopOrientation);
-configString+=makeConfig("EFISTYPE",efisType);
+configString.concat(makeConfig("PORTS_ORIENTATION",portsOrientation));
+configString.concat(makeConfig("BOX_TOP_ORIENTATION",boxtopOrientation));
+configString.concat(makeConfig("EFISTYPE",efisType));
 
 // biases
-configString+=makeConfig("PFWD_BIAS",String(pFwdBias));
-configString+=makeConfig("P45_BIAS",String(p45Bias));
-configString+=makeConfig("PSTATIC_BIAS",floatToString(pStaticBias));
-configString+=makeConfig("GX_BIAS",floatToString(gxBias));
-configString+=makeConfig("GY_BIAS",floatToString(gyBias));
-configString+=makeConfig("GZ_BIAS",floatToString(gzBias));
-configString+=makeConfig("PITCH_BIAS",floatToString(pitchBias));
-configString+=makeConfig("ROLL_BIAS",floatToString(rollBias));
-
+configString.concat(makeConfig("PFWD_BIAS",String(pFwdBias)));
+configString.concat(makeConfig("P45_BIAS",String(p45Bias)));
+configString.concat(makeConfig("PSTATIC_BIAS",floatToString(pStaticBias)));
+configString.concat(makeConfig("GX_BIAS",floatToString(gxBias)));
+configString.concat(makeConfig("GY_BIAS",floatToString(gyBias)));
+configString.concat(makeConfig("GZ_BIAS",floatToString(gzBias)));
+configString.concat(makeConfig("PITCH_BIAS",floatToString(pitchBias)));
+configString.concat(makeConfig("ROLL_BIAS",floatToString(rollBias)));
 
 // serial inputs
-configString+=makeConfig("BOOM",String(readBoom));
-configString+=makeConfig("SERIALEFISDATA",String(readEfisData));
+configString.concat(makeConfig("BOOM",String(readBoom)));
+configString.concat(makeConfig("SERIALEFISDATA",String(readEfisData)));
 
 // load limit
-configString+=makeConfig("LOADLIMITPOSITIVE",String(loadLimitPositive));
-configString+=makeConfig("LOADLIMITNEGATIVE",String(loadLimitNegative));
-
+configString.concat(makeConfig("LOADLIMITPOSITIVE",String(loadLimitPositive)));
+configString.concat(makeConfig("LOADLIMITNEGATIVE",String(loadLimitNegative)));
 
 // vno chime
-configString+=makeConfig("VNO",String(Vno));
-configString+=makeConfig("VNO_CHIME_INTERVAL",String(vnoChimeInterval));
-configString+=makeConfig("VNO_CHIME_ENABLED",String(vnoChimeEnabled));
+configString.concat(makeConfig("VNO",String(Vno)));
+configString.concat(makeConfig("VNO_CHIME_INTERVAL",String(vnoChimeInterval)));
+configString.concat(makeConfig("VNO_CHIME_ENABLED",String(vnoChimeEnabled)));
 
 // serial out
-configString+=makeConfig("SERIALOUTFORMAT",serialOutFormat);
-configString+=makeConfig("SERIALOUTPORT",serialOutPort);
+configString.concat(makeConfig("SERIALOUTFORMAT",serialOutFormat));
+configString.concat(makeConfig("SERIALOUTPORT",serialOutPort));
 
 // sdLogging
-configString+=makeConfig("SDLOGGING",String(sdLoggingConfig));    
+configString.concat(makeConfig("SDLOGGING",String(sdLoggingConfig)));    
 
-configString+="</CONFIG>";
-
-
+configString.concat("</CONFIG>");
     
-return configString;
+//return configString;
+return;    
 }
 
 bool loadConfigFromString(String configString)
@@ -302,12 +306,14 @@ sdLogging=sdLoggingConfig;
 return true;  
 }
 
-String addCRC(String configString)
+void addCRC(String &configString)
 {
 int16_t calcCRC=0;
 String configContent=getConfigValue(configString,"CONFIG");
-for (unsigned int i=0;i<configContent.length();i++) calcCRC+=configContent[i];                     
+for (unsigned int i=0;i<configContent.length();i++) calcCRC+=configContent[i];
 // add CRC
-configString+="<CHECKSUM>"+String(calcCRC, HEX)+"</CHECKSUM>";
-return configString;
+configString.concat("<CHECKSUM>");
+configString.concat(String(calcCRC, HEX));
+configString.concat("</CHECKSUM>");
+return;
 }

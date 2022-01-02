@@ -124,7 +124,7 @@ calcAOA(PfwdSmoothed,P45Smoothed); // calculate AOA based on Pfwd/P45;
 // calculate airspeed
 #ifdef SPHERICAL_PROBE
   IAS=SphericalIASCurve(PfwdSmoothed,P45Smoothed);
-#elif
+#else
   PfwdPascal=((PfwdSmoothed+pFwdBias - 0.1*16383) * 2/(0.8*16383) -1) * 6894.757;
   if (PfwdPascal>0)
       {
