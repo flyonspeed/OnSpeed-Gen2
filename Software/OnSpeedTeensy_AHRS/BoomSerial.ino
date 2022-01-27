@@ -21,6 +21,23 @@ void readBoomSerial()
               // verify if line starting with $
                 if (boomBufferString[0]=='$' && boomBufferString.length()>=21) // actual data starts at 21
                 {
+                boomTimestamp=millis();
+                  
+#ifdef NOBOOMCHECKSUM
+                  // no CRC
+                      for (unsigned int k=21;k<boomBufferString.length()-1;k++)
+                          {                    
+                          if (boomBufferString[k]==',') parseArrayIndex++; else parseArray[parseArrayIndex]+=boomBufferString[k];
+                          if (parseArrayIndex>=4) break;
+                          } // for                                 
+                      boomStatic=BOOM_STATIC_CALC(parseArray[0].toInt());
+                      boomDynamic=BOOM_DYNAMIC_CALC(parseArray[1].toInt());                    
+                      //if (boomDynamic*100/1.225*2>0) boomIAS=sqrt(boomDynamic*100/1.225*2)* 1.94384; else 
+                      boomIAS=0;
+                      boomAlpha=BOOM_ALPHA_CALC(parseArray[2].toInt());
+                      boomBeta=BOOM_BETA_CALC(parseArray[3].toInt());
+#else
+                  
                  //calculate CRC
                 int calcCRC=0;
                 for (unsigned int i=0;i<boomBufferString.length()-4;i++)
@@ -35,17 +52,13 @@ void readBoomSerial()
                           {                    
                           if (boomBufferString[k]==',') parseArrayIndex++; else parseArray[parseArrayIndex]+=boomBufferString[k];
                           if (parseArrayIndex>=4) break;
-                          } // for                                 
-                      boomTimestamp=millis();
+                          } // for                                                       
                       boomStatic=BOOM_STATIC_CALC(parseArray[0].toInt());
                       boomDynamic=BOOM_DYNAMIC_CALC(parseArray[1].toInt());                    
-                      if (boomDynamic*100/1.225*2>0) boomIAS=sqrt(boomDynamic*100/1.225*2)* 1.94384; else boomIAS=0;
+                      //if (boomDynamic*100/1.225*2>0) boomIAS=sqrt(boomDynamic*100/1.225*2)* 1.94384; else 
+                      boomIAS=0;
                       boomAlpha=BOOM_ALPHA_CALC(parseArray[2].toInt());
-                      boomBeta=BOOM_BETA_CALC(parseArray[3].toInt());
-                      #ifdef BOOMDATADEBUG
-                      Serial.printf("BOOM: boomStatic %.2f, boomDynamic %.2f, boomAlpha %.2f, boomBeta %.2f, boomIAS %.2f\n", boomStatic, boomDynamic, boomAlpha, boomBeta, boomIAS);
-                      //Serial.printf("BOOM: boomStatic %i, boomDynamic %i, boomAlpha %i, boomBeta %i,\n", parseArray[0].toInt(), parseArray[1].toInt(), parseArray[2].toInt(), parseArray[3].toInt());
-                      #endif
+                      boomBeta=BOOM_BETA_CALC(parseArray[3].toInt());   
                       
                      } else 
                           {
@@ -53,7 +66,13 @@ void readBoomSerial()
                           Serial.println("BOOM: Bad CRC");
                           #endif  
                           // bad CRC    
-                          }   
+                          }
+#endif                            
+
+#ifdef BOOMDATADEBUG
+                      Serial.printf("BOOM: boomStatic %.2f, boomDynamic %.2f, boomAlpha %.2f, boomBeta %.2f, boomIAS %.2f\n", boomStatic, boomDynamic, boomAlpha, boomBeta, boomIAS);
+                      //Serial.printf("BOOM: boomStatic %i, boomDynamic %i, boomAlpha %i, boomBeta %i,\n", parseArray[0].toInt(), parseArray[1].toInt(), parseArray[2].toInt(), parseArray[3].toInt());
+#endif 
                       
                } // if (boomBufferString[0]='$')
               

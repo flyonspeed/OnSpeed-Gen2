@@ -8,7 +8,8 @@
 
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION   "v3.2.2j" // 12/5/2021 rolled in Spherical probe curves
+#define VERSION   "v3.2.2k" // 1/27/2021 added NOBOOMCHECKSUM option to accomodate flight test booms with no checksum in their datastream
+//"v3.2.2j" // 12/5/2021 rolled in Spherical probe curves
 //"v3.2.2i"     // improved serial data processing, boom/efis
 //"v3.2.2h"     // 12/1/2021 fixed serial data processing
 //"v3.2.2g"     // added IMU temp logging, fixed wifi transfer issue (update wifi code to same version)
@@ -89,6 +90,7 @@
 //#define BOOM_BETA_CALC(x)       2.0096*pow(10,-13)*x*x*x*x - 3.7124*pow(10,-9)*x*x*x + 2.5497*pow(10,-5)*x*x - 3.7141*pow(10,-2)*x - 72.505; //degrees
 //#define BOOM_STATIC_CALC(x)     0.00012207*(x - 1638)*1000; // millibars
 //#define BOOM_DYNAMIC_CALC(x)    (0.01525902*(x - 1638)) - 100; // millibars
+//#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
 
 
 // log raw counts for boom, no curves

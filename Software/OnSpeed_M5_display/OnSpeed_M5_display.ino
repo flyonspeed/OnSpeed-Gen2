@@ -21,9 +21,9 @@ OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 //#define SERIALDATADEBUG // show serial packet debug
-#define IAS_IN_MPH  // uncomment this line for IAS in MPH, otherwise it will display in Kts;
+//#define IAS_IN_MPH  // uncomment this line for IAS in MPH, otherwise it will display in Kts;
 
-#define firmwareVersion "3.2.2f"
+#define firmwareVersion "3.2.2k"
 
 #include <GaugeWidgets.h>
 #include <M5Stack.h>
