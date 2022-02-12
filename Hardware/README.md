@@ -34,8 +34,8 @@ MCACS-1012-1132 (special order, call Beswick to order at 603-433-1188)\
 http://catalog.beswick.com/#WORKFLOW;PRODUCT,MCACS,FILTER_FITTINGS
 
 1x SD card (some cards have a huge write latency, we tested this one and it works)\
-SanDisk Ultra 32GB microSDHC UHS-I card\
-https://www.amazon.com/dp/B073JWXGNT/
+SanDisk Extreme Pro MicroSDXC UHS-I U3 A2 V30 64GB
+https://www.amazon.com/gp/product/B07G3GMRYF
 
 
 1/16" ID hose (for static pressure sensor)\
