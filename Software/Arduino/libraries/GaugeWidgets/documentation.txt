@@ -1,0 +1,31 @@
+The M5Stack GaugeWidgets Library
+Written by V.R. ("Voltar") Little
+Initial release:  Feb. 2, 2020.
+Version 1.1, released Apr. 25, 2020.  Added variable with line draw function.
+
+Summary:
+An Arduino-compatible graphical gauge widget library for flight displays.
+
+Compatability:
+Written for and tested on the M5Stack ESP32 family of devices.
+
+Description:
+The GaugeWidgets library provides four main scalable graphical elements:
+- A vertical bar,
+- A horizontal bar, 
+- Arc or circular bar, and
+- Rotable and Scalable numeric vector fonts.
+
+Each gauge has up to five programmable color ranges with eight definable pointers,
+and eight definable pointer types (various arrows, bars, bugs, and needles). 
+
+Each pointer type has a particular shape, a programmable color, and a single character 'tag' 
+that helps when labelling pointers.
+
+Each gauge also supports optional graduation marks. Also, text datum points are available after a widget has
+been drawn that assist in placing text labels near the minimum and maximum points of the gauge.
+
+All inquiries for beta testers should be directed to v o l t a r @ h u v v e r . t e c h <remove spaces>
+
+
+
