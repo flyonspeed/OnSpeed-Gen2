@@ -110,6 +110,8 @@ serialCmdChar = Serial.read();
                                                           {
                                                           bool orig_sdLogging=sdLogging;
                                                            if (orig_sdLogging) sdLogging=false; // turn off sdLogging                                                           
+                                                           timersOff();
+                                                           Sd.end();
                                                                                                                     
                                                             ExFatFormatter exFatFormatter;
                                                             FatFormatter fatFormatter;                                                            
@@ -120,6 +122,26 @@ serialCmdChar = Serial.read();
                                                               } else                                                               
                                                                  {
                                                                   cardSectorCount = m_card->sectorCount();
+                                                                    // erase card first
+                                                                    Serial.println("Erasing card");
+                                                                    uint32_t const ERASE_SIZE = 262144L;
+                                                                    uint32_t firstBlock = 0;
+                                                                    uint32_t lastBlock;
+                                                                    do {
+                                                                        lastBlock = firstBlock + ERASE_SIZE - 1;
+                                                                        if (lastBlock >= cardSectorCount)
+                                                                            {
+                                                                            lastBlock = cardSectorCount - 1;
+                                                                            }
+                                                                        if (!m_card->erase(firstBlock, lastBlock))
+                                                                            {
+                                                                            Serial.println("Card erase failed");
+                                                                            }
+                                                                      firstBlock += ERASE_SIZE;
+                                                                    checkWatchdog();  
+                                                                    } while (firstBlock < cardSectorCount);
+
+                                                                  Serial.println("Fromatting card");
                                                                   //Serial.printf("Sectorcount: %i\n",cardSectorCount);
                                                                     // Format exFAT if larger than 32GB.
                                                                     bool rtn = cardSectorCount > 67108864 ?
@@ -134,18 +156,33 @@ serialCmdChar = Serial.read();
                                                                           Serial.println("GBytes");
                                                                           delay(300);
                                                                           //reinitialize SD card
-                                                                          sdAvailable=Sd.begin(SdioConfig(FIFO_SDIO));
+
+                                                                         // initialize card, 
+                                                                         byte sdBeginTries=0;
+                                                                         sdAvailable=Sd.begin(SdioConfig(FIFO_SDIO));
+                                                                         while (!sdAvailable && sdBeginTries<5)
+                                                                               {
+                                                                               //try up to 5 times
+                                                                               Serial.println("Reintializing SD card.");
+                                                                               sdAvailable=Sd.begin(SdioConfig(FIFO_SDIO));
+                                                                               delay(200);
+                                                                               sdBeginTries++;
+                                                                               }
+                                                                          //sdAvailable=Sd.begin(SdioConfig(FIFO_SDIO));
+                                                                          if (!sdAvailable) Serial.println("SD card couldn't be initialized");
                                                                           String configString="";
                                                                           configurationToString(configString);
                                                                           saveConfigurationToFile(configFilename,configString);
-                                                                          }                                                                    
-                                                                 }  
-                                                           
+                                                                          // card is empty create new log file
+                                                                          createLogFile();
+                                                                          timersOn();                                                                          
+                                                                          }
+                                                                                                                                              
+                                                                 }                                                           
                                                                          
                                                           if (orig_sdLogging)
                                                                             {
                                                                             //reinitialize card
-                                                                            Sd.begin(SdioConfig(FIFO_SDIO));
                                                                             sdLogging=true; // if logging was on before FORMAT turn it back on               
                                                                             }
                                                           

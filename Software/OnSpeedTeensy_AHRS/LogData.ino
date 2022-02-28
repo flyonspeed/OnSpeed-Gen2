@@ -53,7 +53,7 @@ if (sdLogging)
 void createLogFile()
 {
  //sdAvailable=Sd.begin(SdioConfig(FIFO_SDIO));
- if (dataSource=="SENSORS" && sdAvailable && sdLogging)
+ if (dataSource=="SENSORS" && sdAvailable)
         {
         Serial.println("SD card initialized. Logging Enabled.");       
         sprintf(filenameSensor,"log_1.csv");        
@@ -64,8 +64,7 @@ void createLogFile()
               sprintf(filenameSensor,"log_%d.csv",fileCount);              
               }
         Serial.print("Sensor log file:"); Serial.println(filenameSensor);        
-        if (sdLogging)
-            {
+
             SensorFile = Sd.open(filenameSensor, O_CREAT | O_WRITE | O_TRUNC);
             if (SensorFile) {
                             SensorFile.print("timeStamp,Pfwd,PfwdSmoothed,P45,P45Smoothed,PStatic,Palt,IAS,AngleofAttack,flapsPos,DataMark");
@@ -85,9 +84,7 @@ void createLogFile()
                                     {
                                     Serial.println("SensorFile opening error. Logging disabled.");        
                                     sdLogging=false;
-                                    }
-            }
-         
+                                    }         
         
       } 
 }

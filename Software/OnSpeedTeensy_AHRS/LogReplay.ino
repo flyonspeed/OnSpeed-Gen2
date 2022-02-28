@@ -60,7 +60,6 @@ while (SensorFile.available())
                        }
                  }                       
                   lineCount++;
-                  if (lineCount<30000) return; // skip the first 20000 lines
                   // simulate a sensor read cycle
                   //Pfwd=valueArray[1].toInt(); // bias already removed                  
                   PfwdSmoothed=valueArray[2].toFloat();                  

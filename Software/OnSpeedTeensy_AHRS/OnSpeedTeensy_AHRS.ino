@@ -8,8 +8,9 @@
 
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION   "v3.2.2k" // 1/27/2021 added NOBOOMCHECKSUM option to accomodate flight test booms with no checksum in their datastream
-//"v3.2.2j" // 12/5/2021 rolled in Spherical probe curves
+#define VERSION   "v3.2.2l" // 2/9/2022 Added full card erase before card format. Results in much faster data writes. Also fixed SD card init issues after formatting.
+//"v3.2.2k"     // 1/27/2022 added NOBOOMCHECKSUM option to accomodate flight test booms with no checksum in their datastream
+//"v3.2.2j"     // 12/5/2021 rolled in Spherical probe curves
 //"v3.2.2i"     // improved serial data processing, boom/efis
 //"v3.2.2h"     // 12/1/2021 fixed serial data processing
 //"v3.2.2g"     // added IMU temp logging, fixed wifi transfer issue (update wifi code to same version)
@@ -109,7 +110,7 @@
 //#define EFISDATADEBUG // show efis data debug
 //#define BOOMDATADEBUG  // show boom data debug
 //#define TONEDEBUG // show tone related debug info
-//#define SDCARDDEBUG  // show SD writing debug info
+#define SDCARDDEBUG  // show SD writing debug info
 //#define VOLUMEDEBUG  // show audio volume info
 //#define VNDEBUG // show VN-300 debug info
 //#define AXISDEBUG //show accelerometer axis configuration
@@ -286,7 +287,7 @@ volatile double coeffP; // coefficient of pressure
 #define SENSOR_INTERVAL 20000  // microsecond interval for sensor read (50hz)
 //#define SENSOR_INTERVAL 4201 // 238hz logging
 //#define REPLAY_INTERVAL 4201.680672268907563
-#define REPLAY_INTERVAL 4201
+#define REPLAY_INTERVAL 20000
 #define IMU_INTERVAL    4200 // microseconds interval for IMU read
 
 // max possible AOA value
@@ -736,7 +737,7 @@ if (!volumeControl)
     }
 
 // create logfile
-   createLogFile();
+   if (sdLogging) createLogFile();
 #ifdef LOGDATA_PRESSURE_RATE  // sd card write rate
   Serial.println("Logging at 50Hz");
 #else

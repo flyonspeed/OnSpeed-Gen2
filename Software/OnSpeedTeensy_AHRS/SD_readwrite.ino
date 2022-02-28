@@ -29,7 +29,7 @@ int SDwriteBytesCount=0;
     SensorFile = Sd.open(filenameSensor, O_WRITE | O_APPEND);
     if (!SensorFile)         
         {
-        Serial.println("cannot open log file for writing");                                  
+        Serial.print("cannot open log file ");Serial.print(filenameSensor);Serial.println(" for writing");
         return;
         }
     #ifdef SDCARDDEBUG
