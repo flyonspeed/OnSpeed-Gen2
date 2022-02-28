@@ -2,11 +2,6 @@
 // set board type to M5Stack-Core-ESP32
 
 /*
- This code is based on the work of Vern Little, see copyright notice below.
- Adapted by/for FlyOnSpeed.org, 2021. Lenny Iszak, lenny@flyonspeed.org
-*/
-
-/*
 Copyright 2020 V.R. Little
 
 Permission is hereby granted, free of charge, to any person provided a copy of this software and associated documentation files
@@ -18,12 +13,15 @@ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO 
 BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF 
 OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
+/*
+ This code is based on the work on Vern Little, see copyright notice above.
+ Adapted by/for FlyOnSpeed.org, 2021. lenny@flyonspeed.org
+*/
 
 //#define SERIALDATADEBUG // show serial packet debug
 //#define IAS_IN_MPH  // uncomment this line for IAS in MPH, otherwise it will display in Kts;
 
-#define firmwareVersion "3.2.2k"
+#define firmwareVersion "3.2.2l"
 
 #include <GaugeWidgets.h>
 #include <M5Stack.h>
@@ -176,7 +174,8 @@ for (int i=0;i<300;i++) gHistory[i]=1.00;
 // load preferences for Serial port selection)
 preferences.begin("OnSpeed", false);
 selectedPort=preferences.getUInt("SerialPort", 0);
-if (selectedPort==0)
+unsigned long detectSerialStart=millis();
+while (selectedPort==0 && millis()-detectSerialStart<30000) // allow 30 seconds to detect serial port
           {
           // check serial port       
           selectedPort=checkSerial();
@@ -411,12 +410,10 @@ if (millis() > (loopTime + updateRateGraphics))
   // update numbers at a slower rate so they are readable
   if (millis()-numbersUpdateTime>updateRateNumbers)
       {
-      
-      #ifdef IAS_IN_MPH
-        displayIAS=IAS*1.15078; // mph
-      #elif  
-        displayIAS=IAS; // kts
-      #endif  
+      displayIAS=IAS;
+            #ifdef IAS_IN_MPH
+              displayIAS=IAS*1.15078;
+            #endif  
 
       displayPalt=Palt;
       displayPitch=Pitch;
