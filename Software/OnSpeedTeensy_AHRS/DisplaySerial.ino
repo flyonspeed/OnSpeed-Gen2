@@ -49,7 +49,7 @@ if (serialOutPort!="NONE" && millis()-serialoutLastUpdate>100) // update every 1
                         // 0 - Escape character  '#'
                         // 1 - Sentence ID '1'
                         // 2 - Pitch, 4 bytes, 0.1 degree, positive = up
-                        // 6 - Roll, 5 bytes, 0.1 degree, positive = up
+                        // 6 - Roll, 5 bytes, 0.1 degree, positive = right
                         // 11 - IAS, 4 bytes, 0.1 kts
                         // 15 - PALT, 6 bytes, 1 ft
                         // 21 - Rate of Turn,  5 bytes, .1 deg/sec, positive = right

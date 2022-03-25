@@ -29,7 +29,7 @@
 
 #define BAUDRATE_WIFI         921600
 
-String wifi_fw="3.2.2k"; // wifi firmware version
+String wifi_fw="3.2.2j"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
@@ -90,6 +90,9 @@ bool readEfisData;
 bool casCurveEnabled;
 String efisType;
 
+// calibration data source
+String calSource;
+
 // serial output
 String serialOutFormat;
 String serialOutPort;
@@ -120,6 +123,8 @@ floatArray flapLDMAXAOA;
 floatArray flapONSPEEDFASTAOA;
 floatArray flapONSPEEDSLOWAOA;
 floatArray flapSTALLWARNAOA;
+floatArray flapSTALLAOA;
+floatArray flapMANAOA;
 
 // accelerometer axis
 String boxtopOrientation="";
@@ -156,7 +161,8 @@ String teensyVersion="";
 // calibration wizard variables
 int acGrossWeight=2700;
 int acCurrentWeight=2500;
-int acVldmax=91;
+float acVldmax=91;
+float acGlimit=3.8;
 
 #include <Onspeed-settingsFunctions.h> // library with setting functions
 
@@ -266,7 +272,7 @@ void handleSensorConfig()
     <p style=\"color:black\">This procedure will calibrate the system\'s accelerometers, gyros and pressure sensors.<br><br>\
     <b>Requirements:</b><br><br>\
     1. Do this configuration in no wind condition. Preferably inside a closed hangar, no moving air<br>\
-    2. Box orientation is set up properly in <a href=\"aoaconfig\">AOA Configuration</a><br>\
+    2. Box orientation is set up properly in <a href=\"aoaconfig\">System Configuration</a><br>\
     3. If the aircraft is not in a level attitude enter the current pitch and roll angles below.<br>\
     4. Enter current pressure altitude in feet. (Set your altimeter to 29.92 inHg and read the altitude)\
     <br><br>\
@@ -490,11 +496,10 @@ void handleCalWizard()
    String scripts="";
    updateHeader();   
    page+=pageHeader;   
-   page+="<br><b>Calibration Wizard</b><br><br>";
-   // start (get parameters for calibration) -> stalls -> flysetpoints -> verifysetpoints -> done (next flap setting).
-
+ 
    if (wizardStep=="")
    {
+   page+="<br><b>Calibration Wizard</b><br><br>";
    page+="This wizard will guide you through the AOA calibration process.<br><br>";
    page+="Enter the following aircraft parameters:<br><br>\
           <div class=\"content-container\">\
@@ -512,9 +517,13 @@ void handleCalWizard()
                 <div class=\"form-divs flex-col-12\">\
                 <label>Best glide airspeed at gross weight (KIAS)</label>\
                 <input class=\"inputField\" type=\"text\" name=\"acVldmax\" value=\""+ String(acVldmax)+"\">\
+                </div>\
+                <div class=\"form-divs flex-col-12\">\
+                <label>Airframe load factor limit (G)</label>\
+                <input class=\"inputField\" type=\"text\" name=\"acGlimit\" value=\""+ String(acGlimit)+"\">\
                 <br>\
                 <br>\
-                The above parameters will allow us to calculate your current best glide speed.\
+                Note: The above parameters are needed to calculate your best glide speed and maneuvering speed at the current weight.\
                 </div>";
 
                 page+="<br><br><br>\
@@ -529,35 +538,49 @@ void handleCalWizard()
         </div>";
    } else
    if  (wizardStep=="decel")
-   {   
+   {       
+    String configString=getConfigString(); // load current config
+              if (configString.indexOf("</CONFIG>")>0)
+                  {
+                  loadConfigFromString(configString);
+                  } else
+                        {
+                        server.send(200, "text/html", "Couldn't load configuration. Refresh the page to try again.");
+                        return;
+                        }
+
+    
     if (server.hasArg("acGrossWeight")) acGrossWeight=server.arg("acGrossWeight").toInt();
     if (server.hasArg("acCurrentWeight")) acCurrentWeight=server.arg("acCurrentWeight").toInt();
     if (server.hasArg("acVldmax")) acVldmax=server.arg("acVldmax").toInt();
+    if (server.hasArg("acGlimit")) acGlimit=server.arg("acGlimit").toFloat();
+    page+="<br><b>Calibration Wizard</b><br><br>";
     page+="<form  id=\"id_configWizStartForm\" action=\"calwiz?step=flydecel\" method=\"POST\">\
-          Get ready to fly a shallow descent deceleration.<br>\
-          <b>Requirements:</b>\
+          Get ready to fly a 1kt/sec deceleration.<br><br>\
+          <b>Instructions:</b>\
           <br><br>\
-          1. Fly the entire run at a steady 1kt/sec deceleration (Onspeed provides feedback)<br>\
-          2. Keep the ball in the middle and wings level at all times<br>\
-          3. Do not pull up abruptly into the stall. Stall smoothly.<br>\
-          4. Do not change flap position during the run.\
-          5. After the stall drop the nose for recovery. This will signal the CPU to analyze the calibration.\
+          1. Set you flaps now and do not change them until after you saved the calibartion.<br\
+          2. Fly the entire run at a steady 1kt/sec deceleration (OnSpeed provides feedback).<br>\
+          3. Keep the ball in the middle and wings level at all times<br>\
+          4. Prioritize pitch smoothness over deceleration rate.<br>\
+          5. Do not pull up abruptly into the stall. Stall smoothly.<br>\
+          6. After the stall pitch down to a negative pitch angle for recovery. This will end the data recording and start analyzing the data.\
           <br><br>\
-          After detecting the stall OnSpeed will analyze and grade it and let you know if it was flown correctly.\
+          Ready? Hit the Continue button below and then fly max speed (Keep it below Vfe with flaps down!) with the flap setting you want to calibrate.\
           <br><br>\
-          Ready? Hit the Continue button below and then fly max speed (below flap extension speed with flaps down) with the current flap setting.\
           <br><br>\
-          <br><br><br>\
           <a href=\"/\">Cancel</a>\
           <button type=\"submit\" class=\"button\">Continue</button>\
           </form>";
    } else
      if  (wizardStep=="flydecel")
          {                
+             
              page+="<script>";
              page+="acGrossWeight="+String(acGrossWeight)+";";
              page+="acCurrentWeight="+String(acCurrentWeight)+";";
              page+="acVldmax="+String(acVldmax)+";";
+             page+="acGlimit="+String(acGlimit)+";";
              page+="flapPositionCount="+String(flapDegrees.Count)+";";
              // send flap degrees array to javascript
              page+="flapDegrees=[";
@@ -566,8 +589,7 @@ void handleCalWizard()
                   page+=String(flapDegrees.Items[flapIndex]);
                   if (flapIndex<flapDegrees.Count-1) page+=",";
                   }   
-             page+="];";
-             
+             page+="];";             
              page+="</script>";
             // send one by one, too long to send it all at once
             String SjsSGfilter=String(jsSGfilter);
@@ -580,7 +602,7 @@ void handleCalWizard()
                    
             int contentLength=page.length()+SjsSGfilter.length()+SjsRegression.length()+ScssChartist.length()+SjsChartist1.length()+SjsChartist2.length()+SjsCalibration.length()+ShtmlCalibration.length()+pageFooter.length();
             //server.sendHeader("Content-Length", (String)contentLength);
-            server.setContentLength(CONTENT_LENGTH_UNKNOWN); // send content in chnuncks, too large for String
+            server.setContentLength(CONTENT_LENGTH_UNKNOWN); // send content in chuncks, too large for String
             server.send(200, "text/html", "");
             server.sendContent(page);
             server.sendContent(SjsSGfilter);
@@ -594,7 +616,47 @@ void handleCalWizard()
             server.sendContent(""); 
             return;            
                       
-        }
+        } else
+           if  (wizardStep=="save")
+              {              
+                  //String postString="flapsPos="+server.arg("flapsPos")+"&curve0="+server.arg("curve0")+"&curve1="+server.arg("curve1")+"&curve2="+server.arg("curve2")+"&LDmaxSetpoint="+server.arg("LDmaxSetpoint")
+                  //+"&OSFastSetpoint="+server.arg("OSFastSetpoint")+"&OSSlowSetpoint="+server.arg("OSSlowSetpoint")+"&StallWarnSetpoint="+server.arg("StallWarnSetpoint")//
+                  //+"&ManeuveringSetpoint="+server.arg("ManeuveringSetpoint")+"&StallSetpoint="+server.arg("StallSetpoint");              
+                   // find flapIndex
+                   for (int flapIndex=0; flapIndex< MAX_AOA_CURVES; flapIndex++)
+                       {
+                       if (flapDegrees.Items[flapIndex]==server.arg("flapsPos").toInt())
+                          {
+                          flapLDMAXAOA.Items[flapIndex]=stringToFloat(server.arg("LDmaxSetpoint"));
+                          flapONSPEEDFASTAOA.Items[flapIndex]=stringToFloat(server.arg("OSFastSetpoint"));
+                          flapONSPEEDSLOWAOA.Items[flapIndex]=stringToFloat(server.arg("OSSlowSetpoint"));
+                          flapSTALLWARNAOA.Items[flapIndex]=stringToFloat(server.arg("StallWarnSetpoint"));
+                          flapSTALLAOA.Items[flapIndex]=stringToFloat(server.arg("StallSetpoint"));
+                          flapMANAOA.Items[flapIndex]=stringToFloat(server.arg("ManeuveringSetpoint"));
+                          aoaCurve[flapIndex].Items[0]=0;
+                          aoaCurve[flapIndex].Items[1]=stringToFloat(server.arg("curve0"));
+                          aoaCurve[flapIndex].Items[2]=stringToFloat(server.arg("curve1"));
+                          aoaCurve[flapIndex].Items[3]=stringToFloat(server.arg("curve2"));
+                          aoaCurve[flapIndex].curveType=1; // polynomial
+                          //save configartion       
+                          String newconfigString;
+                          configurationToString(newconfigString);
+                          if (setConfigString(newconfigString))
+                              {                       
+                              server.send(200, "text/html", "SUCCESS: Configuration was saved!");
+                              return;
+                              } else
+                                    {
+                                    server.send(200, "text/html", "ERROR: Could not save configuration. Try again.");
+                                    return;
+                                    }
+                          break;
+                          }                                                     
+                       }
+                  server.send(200, "text/html", "ERROR saving to config: Could not find the flap position " + server.arg("flapsPos") +" degrees in the configuration file: "+flapDegrees.Count);
+                  return;                 
+          
+              }
    
    page+=pageFooter;
    server.send(200, "text/html", page);
@@ -798,6 +860,8 @@ if (server.hasArg("boxtopOrientation")) boxtopOrientation=server.arg("boxtopOrie
 if (server.hasArg("readEfisData") && server.arg("readEfisData")=="1") readEfisData=true; else readEfisData=false;
 // read efis Type
 if (server.hasArg("efisType")) efisType=server.arg("efisType");
+// read calibration source
+if (server.hasArg("calSource")) calSource=server.arg("calSource");
 // read volume control
 if (server.hasArg("volumeControl") && server.arg("volumeControl")=="1") volumeControl=true; else volumeControl=false;
 //read volumePercent
@@ -1212,7 +1276,15 @@ page+="<div class=\"content-container\">\
                   <option value=\"VN-100\""; if (efisType=="VN-100") page+=" selected"; page+=">VectorNav VN-100 IMU/AHRS</option>\
                   <option value=\"MGL\""; if (efisType=="MGL") page+=" selected"; page+=">MGL iEFIS</option>\
                 </select>\
-              </div>";          
+              </div>";
+
+              page+="<div class=\"form-divs flex-col-12\">\
+                <label for=\"id_calSource\">Calibration Data Source</label>\
+                <select id=\"id_calSource\" name=\"calSource\">\
+                  <option value=\"ONSPEED\""; if (calSource=="ONSPEED" || calSource=="") page+=" selected"; page+=">ONSPEED (internal IMU)</option>\
+                  <option value=\"EFIS\""; if (calSource=="EFIS") page+=" selected"; page+=">EFIS (via serial input)</option>\
+                </select>\
+              </div>";
               
               // volume control
               String defaultVolumeVisibility;
@@ -1834,6 +1906,7 @@ bool handleFileRead(String path) {
       server.send(500, "text/plain", "Invalid Request");
                   return true;
       }
+
   String fileName=path.substring(1,path.indexOf("?")-1);
   unsigned long contentLength=atol(lengthString.c_str());
   delay(200);

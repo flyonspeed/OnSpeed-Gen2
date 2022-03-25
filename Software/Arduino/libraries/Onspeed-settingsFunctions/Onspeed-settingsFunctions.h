@@ -1,4 +1,4 @@
-// ver 3.2.1,  modified 5/25/2020
+// ver 3.2.2j,  modified 3/11/2021
 // Onspeed config library, shared between OnspeedTeensy & OnspeedWifi
 // flyonspeed.org
 
@@ -45,26 +45,33 @@ for (int i=0; i < MAX_AOA_CURVES; i++)
 return result;        
 }
 
-floatArray parseFloatCSV(String configString)
+floatArray parseFloatCSV(String configString, int limit=MAX_AOA_CURVES)
 {
 int commaIndex=0;
 floatArray result;
-for (int i=0; i < MAX_AOA_CURVES; i++)
+for (int i=0; i < limit; i++)
         {
-        commaIndex=configString.indexOf(',');
-        if (commaIndex>0)
-                 { 
-                  result.Items[i]=stringToFloat(configString.substring(0,commaIndex));
-                  result.Count=i+1;                  
-                  configString=configString.substring(commaIndex+1,configString.length());
-                 } 
-                  else
-                      {
-                      // last value
-                       result.Items[i]=stringToFloat(configString);
-                       result.Count=i+1;
-                       return result;
-                      }
+        if (configString=="")
+            {
+            result.Items[i]=0;
+            result.Count=i+1;            
+            } else
+                  {            
+                  commaIndex=configString.indexOf(',');
+                  if (commaIndex>0)
+                           { 
+                            result.Items[i]=stringToFloat(configString.substring(0,commaIndex));
+                            result.Count=i+1;                  
+                            configString=configString.substring(commaIndex+1,configString.length());
+                           } 
+                            else
+                                {
+                                // last value
+                                 result.Items[i]=stringToFloat(configString);
+                                 result.Count=i+1;
+                                 return result;
+                                }
+                  }              
         
         }
 return result;        
@@ -175,6 +182,8 @@ configString.concat(makeConfig("SETPOINT_LDMAXAOA",float_array2string(flapLDMAXA
 configString.concat(makeConfig("SETPOINT_ONSPEEDFASTAOA",float_array2string(flapONSPEEDFASTAOA)));
 configString.concat(makeConfig("SETPOINT_ONSPEEDSLOWAOA",float_array2string(flapONSPEEDSLOWAOA)));
 configString.concat(makeConfig("SETPOINT_STALLWARNAOA",float_array2string(flapSTALLWARNAOA)));
+configString.concat(makeConfig("SETPOINT_STALLAOA",float_array2string(flapSTALLAOA)));
+configString.concat(makeConfig("SETPOINT_MANAOA",float_array2string(flapMANAOA)));
 // total flap curves
 // to get number of curves count flap stops
 for (int i=0;i<flapDegrees.Count;i++)
@@ -189,6 +198,9 @@ configString.concat(makeConfig("CAS_ENABLED",String(casCurveEnabled)));
 configString.concat(makeConfig("PORTS_ORIENTATION",portsOrientation));
 configString.concat(makeConfig("BOX_TOP_ORIENTATION",boxtopOrientation));
 configString.concat(makeConfig("EFISTYPE",efisType));
+
+// calibration data source
+configString.concat(makeConfig("CALWIZ_SOURCE",calSource));
 
 // biases
 configString.concat(makeConfig("PFWD_BIAS",String(pFwdBias)));
@@ -254,6 +266,8 @@ flapLDMAXAOA=parseFloatCSV(getConfigValue(configString,"SETPOINT_LDMAXAOA"));
 flapONSPEEDFASTAOA=parseFloatCSV(getConfigValue(configString,"SETPOINT_ONSPEEDFASTAOA"));
 flapONSPEEDSLOWAOA=parseFloatCSV(getConfigValue(configString,"SETPOINT_ONSPEEDSLOWAOA"));
 flapSTALLWARNAOA=parseFloatCSV(getConfigValue(configString,"SETPOINT_STALLWARNAOA"));
+flapSTALLAOA=parseFloatCSV(getConfigValue(configString,"SETPOINT_STALLAOA"),flapDegrees.Count); // flapSTALLAOA is only availabel after calibration wizard run, limit it to number of flap curves
+flapMANAOA=parseFloatCSV(getConfigValue(configString,"SETPOINT_MANAOA"),flapDegrees.Count); // flapMANAOA is only availabel after calibration wizard run,limit it to number of flap curves
 
 // aoa curves: AOA_CURVE_FLAPS0, AOA_CURVE_FLAPS1,...
 for (int i=0;i<flapDegrees.Count;i++)
@@ -261,16 +275,16 @@ for (int i=0;i<flapDegrees.Count;i++)
 aoaCurve[i]=parseCurveCSV(getConfigValue(configString,"AOA_CURVE_FLAPS"+String(i)));
 }
 
-
 //CAS curve
 casCurve=parseCurveCSV(getConfigValue(configString,"CAS_CURVE"));
 casCurveEnabled=stringToBoolean(getConfigValue(configString,"CAS_ENABLED"));
 
-
-
 portsOrientation=getConfigValue(configString,"PORTS_ORIENTATION");
 boxtopOrientation=getConfigValue(configString,"BOX_TOP_ORIENTATION");
 efisType=getConfigValue(configString,"EFISTYPE");
+
+// calibration data source
+calSource=getConfigValue(configString,"CALWIZ_SOURCE");
 
 // biases
 pFwdBias=getConfigValue(configString,"PFWD_BIAS").toInt();

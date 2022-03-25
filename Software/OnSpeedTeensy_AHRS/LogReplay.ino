@@ -1,6 +1,12 @@
 void LogReplay()
 {
-char logLine[512];
+
+if (timersDisabled) 
+    {
+    checkWatchdog();
+    return; // don't execute Logreplay if timers are disabled;
+    }
+char logLine[1024];
 char inputChar;
 int bufferIndex=0;
 String valueArray[60];
@@ -17,7 +23,7 @@ while (SensorFile.available())
           {
           logLine[bufferIndex]=inputChar;
           bufferIndex++;
-          if (bufferIndex>=511)
+          if (bufferIndex>=1023)
              {
              Serial.println("Buffer overflow while reading log file, skipping to next line");
              bufferIndex=0;
@@ -39,22 +45,22 @@ while (SensorFile.available())
                        {
                        Serial.println("Skipping header in logfile.");
                       // find efisLaterG column index (if boom is available it will be offset by 6 columns)
-                      for (int i=0;i<valueIndex;i++)
-                          {
-                          if (valueArray[i].indexOf("efisLateralG")>=0)
-                              {
-                              efisLateralGColumn=i;
-                              break;
-                              }
-                          }
-                       for (int i=0;i<valueIndex;i++)
-                          {
-                          if (valueArray[i].indexOf("VerticalG")>=0)
-                              {
-                              imuIndex=i;
-                              break;
-                              }
-                          }
+//                      for (int i=0;i<valueIndex;i++)
+//                          {
+//                          if (valueArray[i].indexOf("efisLateralG")>=0)
+//                              {
+//                              efisLateralGColumn=i;
+//                              break;
+//                              }
+//                          }
+//                       for (int i=0;i<valueIndex;i++)
+//                          {
+//                          if (valueArray[i].indexOf("VerticalG")>=0)
+//                              {
+//                              imuIndex=i;
+//                              break;
+//                              }
+//                          }
                       lineCount++;                             
                       return; // skip if log header;
                        }
@@ -87,23 +93,33 @@ while (SensorFile.available())
                   efisLateralG=valueArray[efisLateralGColumn].toFloat();
 
                   // efisPitch
-                  efisPitch=valueArray[20].toFloat();
+                  efisPitch=valueArray[36].toFloat();
 
                   // efisRoll
-                  efisRoll=valueArray[21].toFloat();
+                  efisRoll=valueArray[37].toFloat();
 
                   //efisPalt
-                  efisPalt=valueArray[25].toFloat();
+                  efisPalt=valueArray[6].toFloat();
+
+
+                  //VN attitude and VSI
+                  vnPitch=valueArray[36].toFloat();
+                  vnRoll=valueArray[37].toFloat();
+                  vnVelNedDown=valueArray[31].toFloat();
+                  
                   
                   // get airspeed
                   IAS=valueArray[7].toFloat();
-
+                  // update TAS
+                  TASAvg.addValue((IAS+IAS * Palt / 1000 * 0.02) * 0.514444); // ballpark TAS 2% per thousand feet pressure altitude, in m/sec
+                  smoothedTAS=TASAvg.getFastAverage();
+                 
                   dataMark=valueArray[10].toInt();
 
-                  kalmanAlt=valueArray[39].toFloat()*0.3048;
-                  kalmanVSI=valueArray[40].toFloat()/197;
+                  kalmanAlt=valueArray[54].toFloat()*0.3048;
+                  kalmanVSI=valueArray[55].toFloat()/197;
 
-                  
+                  imuIndex=12;                 
                   // get IMU values from log                 
                   Az=valueArray[imuIndex].toFloat(); // vertical G
                   Ay=valueArray[imuIndex+1].toFloat(); // lateralG

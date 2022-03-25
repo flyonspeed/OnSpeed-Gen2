@@ -26,4 +26,6 @@ LDmaxAOA=flapLDMAXAOA.Items[flapIndex];
 onSpeedAOAfast=flapONSPEEDFASTAOA.Items[flapIndex];
 onSpeedAOAslow=flapONSPEEDSLOWAOA.Items[flapIndex];
 stallWarningAOA=flapSTALLWARNAOA.Items[flapIndex];
+stallAOA=flapSTALLWARNAOA.Items[flapsIndex];
+maneuveringAOA=flapMANAOA.Items[flapsIndex];
 }

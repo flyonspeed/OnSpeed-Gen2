@@ -9,26 +9,62 @@ void SendWifiData()
  verticalGload=round(verticalGload * 10.0) / 10.0; // round to 1 decimal place
  if (aVert<0) verticalGload*=-1;
  
- float displayAOA;
+ float wifiAOA;
  float alphaVA=0.00;
+ float wifiPitch=0;
+ float wifiRoll=0;
+ float wifiFlightpath=0;
+ float wifiVSI=0;
+ 
  if (isnan(AOA) || IAS<muteAudioUnderIAS)
     {
-    displayAOA=-100;
+    wifiAOA=-100;
     }
     else
         {
         // protect AOA from interrupts overwriting it  
-        displayAOA=AOA;
+        wifiAOA=AOA;
         }
- 
- //flapsPercent=(float)flapsPos/(flapDegrees.Items[flapDegrees.Count-1]-flapDegrees.Items[0])*100; //flap angle / flap total travel *100 (needed for displaying partial flap donut on display)
- sprintf(crc_buffer,"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%.6f,%i,%.2f,%.2f,%.2f",displayAOA,smoothedPitch,-smoothedRoll,IAS,kalmanAlt*3.28084,verticalGload,aLat,alphaVA,LDmaxAOA,onSpeedAOAfast,onSpeedAOAslow,stallWarningAOA,flapsPos,coeffP,dataMark,kalmanVSI*196.85,flightPath,gPitch);
+
+// send efis data for the following values when using Efis as the calibration source.
+// Pitch, Roll, VSI, Flightpath
+
+if (calSource=="EFIS")
+  {
+  if (efisType.substring(0,3)=="VN-")
+     {
+     // use Vectornav data
+     wifiPitch=vnPitch;
+     wifiRoll=vnRoll;
+     if (smoothedTAS>0)
+                      {
+                      wifiFlightpath=asin(-vnVelNedDown/smoothedTAS) * RAD2DEG; // convert efiVSI from fpm to m/s, vnVelNedDown is reversed (positive when descending)
+                      } else wifiFlightpath=0;     
+                     
+     wifiVSI=-vnVelNedDown*196.85; // fpm
+     } else
+            {
+            //use parsed efis data
+            wifiPitch=efisPitch;
+            wifiRoll=efisRoll;
+            if (smoothedTAS>0)
+                      {
+                      wifiFlightpath=asin(efisVSI*0.00508/smoothedTAS) * RAD2DEG; // convert efiVSI from fpm to m/s
+                      } else wifiFlightpath=0;
+            wifiVSI=efisVSI;          
+            }             
+  
+  }
+   else
+        {
+        wifiPitch=smoothedPitch; // degrees
+        wifiRoll=-smoothedRoll; // degrees
+        wifiFlightpath=flightPath; // degrees
+        wifiVSI=kalmanVSI*196.85; // fpm
+        }
+
+ sprintf(crc_buffer,"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%.6f,%i,%.2f,%.2f,%.2f,%.2f",wifiAOA,wifiPitch,wifiRoll,IAS,kalmanAlt*3.28084,verticalGload,aLat,alphaVA,LDmaxAOA,onSpeedAOAfast,onSpeedAOAslow,stallWarningAOA,flapsPos,coeffP,dataMark,wifiVSI,wifiFlightpath,gPitch,DecelRate);
  for (unsigned int i=0;i<strlen(crc_buffer);i++) CRC=CRC+char(crc_buffer[i]); // claculate simple CRC
  sprintf(json_buffer,"$ONSPEED,%s,%i\n",crc_buffer,CRC);
  Serial4.print(json_buffer);
-// for (unsigned int i=0; i<strlen(json_buffer);i++)
-//      {                                                                                                                                        
-//      Serial4.flush(); // prevent output buffer overrun
-//      Serial4.print(json_buffer[i]); 
-//      }
  }

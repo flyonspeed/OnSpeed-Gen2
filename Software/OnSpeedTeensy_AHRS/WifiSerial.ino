@@ -347,20 +347,23 @@ if (serialWifiCmdBufferSize >=2047)
                                                                                                                     } else
                                                                                                                           if (strstr(serialWifiCmdBuffer, "$SENDCONFIGSTRING"))                                                                    
                                                                                                                               {
-                                                                                                                              timersOff();
+                                                                                                                              timersOff();                                                                                                                              
                                                                                                                               checkWatchdog();                                                                                                       
                                                                                                                               String configString="";
                                                                                                                               configurationToString(configString);
+                                                                                                                              checkWatchdog();
                                                                                                                               // add CRC to configString
                                                                                                                               addCRC(configString);                                                                                                                              
                                                                                                                               sendWifiSerialString(configString);
                                                                                                                               Serial.println("Configstring sent to Wifi");                                                                                                                                                                                                                                                            
-                                                                                                                              timersOn();                                                                                                                                                                                                                                                      
+                                                                                                                              timersOn();
+                                                                                                                                                                                                                                                                                                                                                                                    
                                                                                                                               checkWatchdog();
                                                                                                                               } else
                                                                                                                                     if (strstr(serialWifiCmdBuffer, "$SAVECONFIGSTRING"))
                                                                                                                                           {
                                                                                                                                           timersOff();
+                                                                                                                                          checkWatchdog();
                                                                                                                                           sdLogging=false;  
                                                                                                                                           // saveConfigString                                                                                                                                          
                                                                                                                                           String configString=String(serialWifiCmdBuffer);
@@ -388,7 +391,7 @@ if (serialWifiCmdBufferSize >=2047)
                                                                                                                                                       Serial4.print("<CONFIGERROR>Transmission Error. Checksum failed. Try again.</CONFIGERROR>");
                                                                                                                                                       Serial.println("CONFIG checksum failed");
                                                                                                                                                       }
-                                                                                                                                          
+                                                                                                                                           checkWatchdog();
                                                                                                                                           
                                                                                                                                           timersOn();
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
@@ -557,7 +560,10 @@ void sendWifiSerialString(String serialString)
   for (unsigned int i=0; i<serialString.length();i++)
   {
   Serial4.flush();
-  while(Serial4.availableForWrite()==0) { };
+  while(Serial4.availableForWrite() == 0)
+    {
+    checkWatchdog();
+    };
   Serial4.print(serialString[i]);  
   checkWatchdog();
   }

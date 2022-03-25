@@ -8,7 +8,9 @@
 
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION   "v3.2.2l" // 2/9/2022 Added full card erase before card format. Results in much faster data writes. Also fixed SD card init issues after formatting.
+#define VERSION   "v3.2.2j" // 3/15/2022 Added ability to run the calibration wizard with efis data, fixed AFS data parsing glitch
+
+//"v3.2.2l"     // 2/9/2022 Added full card erase before card format. Results in much faster data writes. Also fixed SD card init issues after formatting.
 //"v3.2.2k"     // 1/27/2022 added NOBOOMCHECKSUM option to accomodate flight test booms with no checksum in their datastream
 //"v3.2.2j"     // 12/5/2021 rolled in Spherical probe curves
 //"v3.2.2i"     // improved serial data processing, boom/efis
@@ -110,7 +112,7 @@
 //#define EFISDATADEBUG // show efis data debug
 //#define BOOMDATADEBUG  // show boom data debug
 //#define TONEDEBUG // show tone related debug info
-#define SDCARDDEBUG  // show SD writing debug info
+//#define SDCARDDEBUG  // show SD writing debug info
 //#define VOLUMEDEBUG  // show audio volume info
 //#define VNDEBUG // show VN-300 debug info
 //#define AXISDEBUG //show accelerometer axis configuration
@@ -168,6 +170,8 @@ int volumePercent; // %volume
 int defaultVolume;
 bool ledOn=false;
 
+volatile bool timersDisabled=false;
+
 // timers
 unsigned long audio3dLastUpdate=millis();
 unsigned long volumeLastUpdate=millis();
@@ -180,6 +184,7 @@ unsigned long wifiDataLastUpdate=millis();
 unsigned long lastSDWrite=millis();
 unsigned long lastLedUpdate=millis();
 unsigned long lastImuTempUpdate=millis();
+unsigned long lastDecelUpdate=millis();
 
 volatile unsigned long lastWatchdogRefresh;
 volatile bool watchdogEnabled=false;
@@ -225,6 +230,8 @@ floatArray flapLDMAXAOA;
 floatArray flapONSPEEDFASTAOA;
 floatArray flapONSPEEDSLOWAOA;
 floatArray flapSTALLWARNAOA;
+floatArray flapSTALLAOA;
+floatArray flapMANAOA;
 
 //box orientation
 String portsOrientation;
@@ -265,7 +272,7 @@ float imuSampleRate=238; // 238Hz. 50hz for replay
 
 bool newSensorDataAvailable=false;
 
-bool sendWifiData=false;
+volatile bool sendWifiData=false;
 int displayDataCounter=0;
 int imuIndex=0; // used for logreplay
 
@@ -417,12 +424,17 @@ uint8_t  sectorBuffer[512];
 #include "AudioSampleVnochime.h"
 #include "MadgwickFusion.h"
 #include "KalmanFilter.h"
-//#include <SavLayFilter.h>
+#include <SavLayFilter.h>
 
 Madgwick filter;
 KalmanFilter kalman;
 //double imuTempDerivativeInput;
 //SavLayFilter imuTempDerivative (&imuTempDerivativeInput, 1, 15); //Computes the first derivative
+
+double iasDerivativeInput;
+SavLayFilter iasDerivative (&iasDerivativeInput, 1, 15);           //Computes the first derivative
+
+
 volatile float kalmanAlt=0; // meters, Kalman filtered pressure altitude
 volatile float kalmanVSI=0; // m/sec, Kalman filtered instantaneous vertical speed
 
@@ -449,6 +461,7 @@ AudioConnection          patchCord7(ampRight, 0, dacs, 1);
 int rangeSweepDirection=1; // positive
    
 volatile float efisIAS=0.00;
+volatile float DecelRate=0.00;
 volatile float efisPitch=0.00;
 volatile float efisRoll=0.00;
 volatile float efisLateralG=0.00;
@@ -467,11 +480,11 @@ volatile int efisHeading=-1;
 String efisTime="";
 volatile unsigned long efisTimestamp=millis();
 String efisType="";
-
+String calSource="";
 bool efisPacketInProgress=false;
 unsigned long lastReceivedEfisTime;
 int efis_bufferIndex=0;
-String efisBufferString;
+String efisBufferString="";
 
 char efis_inChar;               // efis serial character
 char last_efis_inChar=char(0x00);
@@ -561,6 +574,9 @@ volatile float LDmaxAOA=0.00;
 volatile float onSpeedAOAfast=0.00;
 volatile float onSpeedAOAslow=0.00;
 volatile float stallWarningAOA=0.00;
+volatile float stallAOA=0.00;
+volatile float maneuveringAOA=0.00;
+
 volatile float percentLift=0.0;                     // normalized angle of attack, or lift %
 volatile float IAS = 0.0;                          // live Air Speed Indicated
 volatile float smoothedIAS=0.0;                    // smoothed airspeed
@@ -884,18 +900,30 @@ if ( overgWarning && millis()-gLimitLastUpdate>=100)
        checkVnoChime(); 
        vnoChimeLastUpdate=millis();        
       }
+
+// calculate decel rate
+if (millis()-lastDecelUpdate>100)
+    {
+    iasDerivativeInput=IAS;
+    DecelRate=-iasDerivative.Compute();
+    DecelRate=DecelRate*10;
+    lastDecelUpdate=millis(); 
+    }
+      
 // wifi data
 if (sendWifiData && millis()-wifiDataLastUpdate>98) // update every 100ms (10Hz) (89ms to avoid processing delays)
     {
     SendWifiData();
     wifiDataLastUpdate=millis();
     }
+    
 // heartbeat
 if (millis()-lastLedUpdate>300)
       {
       heartBeat();
       lastLedUpdate=millis(); 
       }
+      
 // watchdog
 checkWatchdog();
 }  // loop

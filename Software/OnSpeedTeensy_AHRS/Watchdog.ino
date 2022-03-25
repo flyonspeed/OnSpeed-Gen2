@@ -23,9 +23,9 @@ interrupts();
 
 void checkWatchdog()
 {
-if (watchdogEnabled && millis()-lastWatchdogRefresh>1000) // refresh watchdog twice per sec
+if (watchdogEnabled && millis()-lastWatchdogRefresh>500) // refresh watchdog twice per sec
     {    
     watchdogRefresh();
-    lastWatchdogRefresh=millis();   
+    lastWatchdogRefresh=millis();
     }
 }
