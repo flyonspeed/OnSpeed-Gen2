@@ -8,8 +8,11 @@
 
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION   "v3.2.2j" // 3/15/2022 Added ability to run the calibration wizard with efis data, fixed AFS data parsing glitch
-
+#define VERSION   "v3.2.2p" // 6/2/2022 disabled IMU gyro hardware high pass filter
+//"v3.2.2o" // 5/28/2022  changed logged pitch and roll resolution to 2 digits, fixed VN-300 parser
+//"v3.2.2n" // 5/11/2022  Added code to read new IMU ISM330DHXC, fixed large config file saving issue
+//"v3.2.2m" // 3/26/2022 use efisIAS with calibration wizard if equiped with spherical probe
+//"v3.2.2j" // 3/15/2022 Added ability to run the calibration wizard with efis data, fixed AFS data parsing glitch. Yeah a second j version :)
 //"v3.2.2l"     // 2/9/2022 Added full card erase before card format. Results in much faster data writes. Also fixed SD card init issues after formatting.
 //"v3.2.2k"     // 1/27/2022 added NOBOOMCHECKSUM option to accomodate flight test booms with no checksum in their datastream
 //"v3.2.2j"     // 12/5/2021 rolled in Spherical probe curves
@@ -66,10 +69,15 @@
 #define LOGDATA_PRESSURE_RATE
 //#define LOGDATA_IMU_RATE
 
+// AOA probe type
 //#define SPHERICAL_PROBE // uncomment this if using custom OnSpeed spherical head probe.
 
-// hardware config
-#define SDCARD // comment out to disable SD card logging
+// imu type
+//#define IMUTYPE_LSM9DS1  // original IMU
+#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
+
+// boom type
+//#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
 
 // curves config
 #define MAX_AOA_CURVES    5 // maximum number of AOA curves (flap/gear positions)
@@ -80,10 +88,11 @@
 #define ASYMMETRIC_GYRO_LIMIT   15 // degrees/sec rotation on either axis to trigger asymmetric G limits.
 
 
+
 // coefficient of pressure formula
 #ifdef SPHERICAL_PROBE
-  #define PCOEFF(p_fwd,p_45)  (p_45+8192)/(p_fwd+8192); //spherical CP3
-  #define SphericalIASCurve(p_fwd,p_45) 1.088 -0.3439 * p_45 + 0.6918 * p_fwd -0.0003027 * p_fwd * p_fwd + 0.001355 * p_45 * p_fwd -0.001139 * p_fwd * p_fwd -9.925e-08 * p_45 * p_45 * p_45  +  6.739e-07 * p_45 * p_45 * p_fwd  -1.414e-06 * p_45 * p_fwd * p_fwd; //spherical IAS approximation
+  #define PCOEFF(p_fwd,p_45)    atan2(p_45,p_fwd); //spherical CP3
+  #define IASCURVE(x)           -3.206e-05*x*x*x+0.008454*x*x+0.3492*x+27.73; // Zlin IAS curve
 #else
   #define PCOEFF(p_fwd,p_45)  p_45/p_fwd; // CP3 // ratiometric CP. CP1 & CP2 are not ratiometric. Can't divide with P45, it goes through zero on Dynon probe.
 #endif
@@ -93,7 +102,6 @@
 //#define BOOM_BETA_CALC(x)       2.0096*pow(10,-13)*x*x*x*x - 3.7124*pow(10,-9)*x*x*x + 2.5497*pow(10,-5)*x*x - 3.7141*pow(10,-2)*x - 72.505; //degrees
 //#define BOOM_STATIC_CALC(x)     0.00012207*(x - 1638)*1000; // millibars
 //#define BOOM_DYNAMIC_CALC(x)    (0.01525902*(x - 1638)) - 100; // millibars
-//#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
 
 
 // log raw counts for boom, no curves
@@ -118,7 +126,6 @@
 //#define AXISDEBUG //show accelerometer axis configuration
 //#define IMUTEMPDEBUG
 //#define AGEDEBUG // debug data age (boom,efis [ms])
-
 
 // box functionality config
 //String dataSource = "TESTPOT"; // potentiometer wiper on Pin 10 of DSUB 15 connector
@@ -268,7 +275,13 @@ float rollBias=0.0;
 float earthVertGTotal=0.0;
 int earthVertGCount=0;
 volatile float earthVertG=0.0;
+
+#ifdef IMUTYPE_LSM9DS1
 float imuSampleRate=238; // 238Hz. 50hz for replay
+#endif
+#ifdef IMUTYPE_ISM330DHCX
+float imuSampleRate=208; // 208Hz.
+#endif
 
 bool newSensorDataAvailable=false;
 
@@ -295,7 +308,12 @@ volatile double coeffP; // coefficient of pressure
 //#define SENSOR_INTERVAL 4201 // 238hz logging
 //#define REPLAY_INTERVAL 4201.680672268907563
 #define REPLAY_INTERVAL 20000
+#ifdef IMUTYPE_LSM9DS1
 #define IMU_INTERVAL    4200 // microseconds interval for IMU read
+#endif
+#ifdef IMUTYPE_ISM330DHCX
+#define IMU_INTERVAL    4808 // microseconds interval for IMU read
+#endif
 
 // max possible AOA value
 #define AOA_MAX_VALUE         40  // was 20 before, but in a sudden stall when the nose quickly goes up, AOA gets larger very quickly and then onspeed goes silent right as the aircraft stalls
@@ -362,25 +380,52 @@ volatile double coeffP; // coefficient of pressure
 
 
 // IMU defines
-#define LSM9DS1_AccelGyro 0x6B
-#define LSM9DS1_Magnet    0x1E
-// LSM9DS1 Accel/Gyro (XL/G) Registers
-#define CTRL_REG5_XL      0x1F
-#define CTRL_REG6_XL      0x20
-#define CTRL_REG7_XL      0x21
-#define OUT_X_L_XL        0x28
-#define CTRL_REG4         0x1E
-#define CTRL_REG1_G       0x10
-#define OUT_X_L_G         0x18
-#define OUT_TEMP_L        0x15
-#define OUT_TEMP_H        0x16
-#define CTRL_REG8         0x22
-#define CTRL_REG9         0x23
-#define STATUS_REG_1      0x27 // status register, is data available?
-#define FIFO_CTRL         0x2E // enable FIFO in IMU
-#define FIFO_SRC          0x2F // FIFO status register
-#define LSM9DS1_TEMP_SCALE 16.0
-#define LSM9DS1_TEMP_BIAS 25.0
+
+#ifdef IMUTYPE_LSM9DS1
+  #define LSM9DS1_Magnet    0x1E
+  // LSM9DS1 Accel/Gyro (XL/G) Registers
+  #define CTRL_REG5_XL      0x1F
+  #define CTRL_REG6_XL      0x20
+  #define CTRL_REG7_XL      0x21
+  #define OUT_X_L_XL        0x28
+  #define CTRL_REG4         0x1E
+  #define CTRL_REG1_G       0x10
+  #define OUT_X_L_G         0x18
+  #define OUT_TEMP_L        0x15
+  #define OUT_TEMP_H        0x16
+  #define CTRL_REG8         0x22
+  #define CTRL_REG9         0x23
+  #define STATUS_REG_1      0x27 // status register, is data available?
+  #define FIFO_CTRL         0x2E // enable FIFO in IMU
+  #define FIFO_SRC          0x2F // FIFO status register
+  #define LSM9DS1_TEMP_SCALE 16.0
+  #define LSM9DS1_TEMP_BIAS 25.0
+  #define _i2cAddress_AccelGyro 0x6B // chip address
+  #define aRes             8.0 / 32768.0 // full scale /resolution (8G)
+  #define gRes             245.0 / 32768.0 // full scale / resolution (245 dps)
+#endif
+
+#ifdef IMUTYPE_ISM330DHCX
+  // define ISM330 registers
+  #define _i2CAddressISM330 0x6A // chip address on I2C bus
+  #define CTRL1_XL 0x10 // accelerometer control register  
+  #define CTRL2_G 0x11 // gyro control register
+  #define CTRL3_C 0x12
+  #define CTRL4_C 0x13
+  #define CTRL9_XL 0x18
+  #define CTRL7_G 0x16
+  #define CTRL6_C 0x15
+  #define OUTX_L_A 0x28 // start of accelerometer output address
+  #define OUTX_L_G 0x22 // start of gyro output address
+  #define ISM330_OUT_TEMP_L 0x20 // temp output register 
+  #define ISM330_OUT_TEMP_H 0x21
+  #define FIFO_CTRL4 0x0A
+  #define ISM330_TEMP_SCALE 256.0
+  #define ISM330_TEMP_BIAS 25.0
+  #define aRes             8.0 / 32768.0 // full scale /resolution (8G)
+  #define gRes             250.0 / 32768.0 // full scale / resolution (250 dps)
+
+#endif
 
 #define DEG2RAD 0.0174533 // degrees to radians
 #define RAD2DEG 57.2958 // radians to degrees
@@ -480,6 +525,7 @@ volatile int efisHeading=-1;
 String efisTime="";
 volatile unsigned long efisTimestamp=millis();
 String efisType="";
+int efisID=0; // 0= none, 1=VN-300, 2=AFS/SkyView, 3=Dynon D10, 4=G5,5=G3X
 String calSource="";
 bool efisPacketInProgress=false;
 unsigned long lastReceivedEfisTime;
@@ -488,6 +534,7 @@ String efisBufferString="";
 
 char efis_inChar;               // efis serial character
 char last_efis_inChar=char(0x00);
+byte previousEfisByte=0x00;
 int efisLateralGColumn=16;
 volatile int charsreceived=0; // debug
 volatile int cachelinecount=0; //debug variable
@@ -623,7 +670,7 @@ int serialCmdBufferSize = 0;        // usb serial command buffer size
 char serialCmdBuffer[51];       // usb serial command buffer
 
 int serialWifiCmdBufferSize = 0;        // usb serial command buffer size
-char serialWifiCmdBuffer[2048];       // usb serial command buffer
+char serialWifiCmdBuffer[3072];       // usb serial command buffer
 
 int serialBufferSize = 0;    // serial buffer size (boom data)
 char serialBuffer[51];       // serial 1  buffer (boom data)
@@ -645,7 +692,7 @@ volatile static unsigned int datalogBytesAvailable=0;
 
 
 // IMU variables
-uint8_t _i2cAddress_AccelGyro=LSM9DS1_AccelGyro;
+
 volatile float ax, ay, az; // ax -instantaneous
 volatile float aVert, aLat, aFwd, aVertComp, aLatComp, aFwdComp;
 volatile float gx, gy, gz; // gx - instantaneous
@@ -663,10 +710,7 @@ volatile float accRoll=0.0; // smoothed pitch
 volatile float gyroPitch=0.0; // for debug
 volatile float gyroRoll=0.0; // for debug
 volatile float rawPitch=0.0; // raw pitch
-float aRes=8.0 / 32768.0; // full scale /resolution (8G)
-//float aRes=2.0 / 32768.0; // full scale /resolution (2G)
 
-float gRes=245.0 / 32768.0; // full scale / resolution (245 degrees)
 
 //uint8_t Ascale = 0;     // accel = +/-2G scale
 uint8_t Ascale = 3;     // accel = +/-8G scale
@@ -729,7 +773,7 @@ unsigned long imuWarmupTime=millis();
 while (millis()-imuWarmupTime<2500)
     {
     readAccelGyro(true); // get temps too  
-    delayMicroseconds(4201);
+    delayMicroseconds(4808);
     }
 AudioMemory(16);
 
@@ -808,7 +852,7 @@ if (!volumeControl)
 
   // initialize filters
  // MadGwick attitude filter
- filter.begin(imuSampleRate,-smoothedPitch,smoothedRoll); // start Madgwick filter at 238Hz
+ filter.begin(imuSampleRate,-smoothedPitch,smoothedRoll); // start Madgwick filter at 238Hz for LSM9DS1 and 208Hz for ISM330DHXC
  
  // kalman altitude filter
  kalman.Configure(43.5882, 40.0599, 1.1201e-07, Palt * FT2M,0.00,0.00); // configure the Kalman filter (Smooth altitude and IVSI from Baro + accelerometers)
@@ -842,9 +886,8 @@ if (!volumeControl)
   //turn audio switch/led on on power-up
   switchState=false;
   switchOnOff();
-  
   Serial.println("System ready.\n");
-  
+
  }
 
 // main loop
@@ -904,7 +947,11 @@ if ( overgWarning && millis()-gLimitLastUpdate>=100)
 // calculate decel rate
 if (millis()-lastDecelUpdate>100)
     {
+#ifdef SPHERICAL_PROBE
+iasDerivativeInput=efisIAS;    
+#else
     iasDerivativeInput=IAS;
+#endif  
     DecelRate=-iasDerivative.Compute();
     DecelRate=DecelRate*10;
     lastDecelUpdate=millis(); 
@@ -923,17 +970,11 @@ if (millis()-lastLedUpdate>300)
       heartBeat();
       lastLedUpdate=millis(); 
       }
+
+switchCheck(); // check main switch
       
 // watchdog
 checkWatchdog();
 }  // loop
-
-
-
-
-
-
-
-
 
  

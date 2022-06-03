@@ -21,7 +21,7 @@ if (Serial4.available()>0)
 //$AUDIOTEST
 serialWifiCmdChar = Serial4.read();
 Serial.print(serialWifiCmdChar);
-if (serialWifiCmdBufferSize >=2047)
+if (serialWifiCmdBufferSize >=3071)
       {       
       serialWifiCmdBufferSize=0; // don't let the command buffer overflow
       }

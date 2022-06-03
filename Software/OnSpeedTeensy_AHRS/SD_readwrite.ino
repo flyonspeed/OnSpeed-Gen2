@@ -14,7 +14,7 @@ unsigned long closeTime;
 int SDwriteBytesCount=0;
 #endif
 
-#ifdef SDCARD
+
     #ifdef SDCARDDEBUG
     Serial.printf("Bytes available: %i\n",datalogBytesAvailable);
     #endif
@@ -49,7 +49,7 @@ int SDwriteBytesCount=0;
         #ifdef SDCARDDEBUG
         timerstart=micros();
         #endif
-        
+        Serial.println("SDwrite");
         SensorFile.write(SDwriteCache,SD_WRITE_BLOCK_SIZE);
         //Serial.println(SDwriteCache);
         datalogBytesAvailable-=SD_WRITE_BLOCK_SIZE;
@@ -69,7 +69,9 @@ int SDwriteBytesCount=0;
         timerstart=micros();                
         #endif
         checkWatchdog();
-        SensorFile.close(); // this takes long sometimes  
+        Serial.println("SDclosing"); 
+        SensorFile.close(); // this takes long sometimes
+        Serial.println("SDclosed"); 
         checkWatchdog();        
        
         #ifdef SDCARDDEBUG
@@ -86,10 +88,7 @@ int SDwriteBytesCount=0;
             
         #ifdef TONEDEBUG 
         Serial.print("free memory: ");Serial.print(freeMemory());
-        #endif                
-            
-  #endif
-  
+        #endif                              
 }
 
 void datalogRingBufferAdd(char * logBuffer)

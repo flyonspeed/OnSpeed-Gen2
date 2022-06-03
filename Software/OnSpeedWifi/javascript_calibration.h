@@ -28,6 +28,7 @@ const char jsCalibration[] PROGMEM = R"=====(
  var smoothDecelRate=-1.0;
  var cP=0;
  var flapsPos=0;
+ var flapsPosCalibrated=0;
  var dataRecording=false;
  var flightData = new Object();
  flightData.IAS=[];
@@ -240,6 +241,7 @@ if (on)
             document.getElementById("idStartInstructions").style.display = "block";
             document.getElementById("idStopInstructions").style.display = "none";
             // calculate smoothed IAS and CP, find max CP and min IAS.
+            flapsPosCalibrated=flapsPos;
             flightData.smoothedIAS[0]=flightData.IAS[0];
             flightData.smoothedCP[0]=flightData.CP[0];
             var stallCP=0;
@@ -450,7 +452,7 @@ a.click();
 
 function saveCalibration()
 {
-params="flapsPos="+flapsPos+"&curve0="+resultCPtoAOA.equation[0]+"&curve1="+resultCPtoAOA.equation[1]+"&curve2="+resultCPtoAOA.equation[2]+"&LDmaxSetpoint="+LDmaxSetpoint+"&OSFastSetpoint="+OSFastSetpoint+"&OSSlowSetpoint="+OSSlowSetpoint+"&StallWarnSetpoint="+StallWarnSetpoint+"&ManeuveringSetpoint="+ManeuveringSetpoint+"&StallSetpoint="+StallSetpoint;
+params="flapsPos="+flapsPosCalibrated+"&curve0="+resultCPtoAOA.equation[0]+"&curve1="+resultCPtoAOA.equation[1]+"&curve2="+resultCPtoAOA.equation[2]+"&LDmaxSetpoint="+LDmaxSetpoint+"&OSFastSetpoint="+OSFastSetpoint+"&OSSlowSetpoint="+OSSlowSetpoint+"&StallWarnSetpoint="+StallWarnSetpoint+"&ManeuveringSetpoint="+ManeuveringSetpoint+"&StallSetpoint="+StallSetpoint;
 var xhr = new XMLHttpRequest();
 xhr.open("POST", "/calwiz?step=save", true);
 xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');

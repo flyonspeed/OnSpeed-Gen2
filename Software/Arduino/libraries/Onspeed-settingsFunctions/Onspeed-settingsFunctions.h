@@ -1,4 +1,4 @@
-// ver 3.2.2j,  modified 3/11/2021
+// ver 3.2.20,  modified 5/31/2021
 // Onspeed config library, shared between OnspeedTeensy & OnspeedWifi
 // flyonspeed.org
 
@@ -282,7 +282,12 @@ casCurveEnabled=stringToBoolean(getConfigValue(configString,"CAS_ENABLED"));
 portsOrientation=getConfigValue(configString,"PORTS_ORIENTATION");
 boxtopOrientation=getConfigValue(configString,"BOX_TOP_ORIENTATION");
 efisType=getConfigValue(configString,"EFISTYPE");
-
+if (efisType=="VN-300") efisID=1; else
+    if (efisType=="ADVANCED") efisID=2; else
+        if (efisType=="DYNOND10") efisID=3; else
+            if (efisType=="GARMING5") efisID=4; else
+                    if (efisType=="GARMING3X") efisID=5; else efisID=0;
+    
 // calibration data source
 calSource=getConfigValue(configString,"CALWIZ_SOURCE");
 

@@ -1,6 +1,8 @@
 // IMU functions
 void initAccelGyro()
-{  
+{
+
+#ifdef IMUTYPE_LSM9DS1
  // enable the three axes of the accelerometer
  I2CwriteByte(_i2cAddress_AccelGyro,CTRL_REG5_XL,  0x38);
  // configure the accelerometer-specify bandwidth selection with Abw
@@ -20,33 +22,66 @@ delay(50);
 I2CwriteByte(_i2cAddress_AccelGyro, CTRL_REG9, 0x02); // write 00000010 to CTRL_REG9 to turn on FIFO, unlimited FIFO depth (32 values max)
 
 delay(100);
+#endif
+
+#ifdef IMUTYPE_ISM330DHCX
+// enable accelerometer
+ I2CwriteByte(_i2CAddressISM330,CTRL1_XL, B01011100); // 208hz ODR, +/-8G, LPF2 disabled
+delay(50);
+// enable gyroscope 
+ I2CwriteByte(_i2CAddressISM330,CTRL2_G, B01010000); // 208 hz, 250dps
+delay(50);
+// enable gyroscope hi-pass filter
+ I2CwriteByte(_i2CAddressISM330,CTRL7_G, B01000000); // high performance mode, disable high pass filter
+delay(50);
+// set fifo
+ I2CwriteByte(_i2CAddressISM330,FIFO_CTRL4, B00110000); // bypass mode, fifo disabled
+delay(50);
+I2CwriteByte(_i2CAddressISM330,CTRL9_XL,B11100001);
+delay(50);
+#endif
+
  
 }
 
 void resetAccelGyro()
   {
+  #ifdef IMUTYPE_LSM9DS1
   // soft reset accelerometer/gyro
   I2CwriteByte(_i2cAddress_AccelGyro,CTRL_REG8,  0x01);
-  delay(100); 
+  delay(100);
+  #endif
+
+  #ifdef  IMUTYPE_ISM330DHCX
+  // soft reset accelerometer/gyro
+  I2CwriteByte(_i2CAddressISM330,CTRL3_C,  B00000101);
+  delay(100);
+  
+  #endif
   }
 
-bool newAccelGyroAvailable()
-    {
-    uint8_t fifoSRCbyte;
-    fifoSRCbyte=I2CreadByte(_i2cAddress_AccelGyro, FIFO_SRC) & 0x3F; // 00111111 - number of bytes available
-    if (fifoSRCbyte >0) return true; else return false;
-    }
+//bool newAccelGyroAvailable()
+//    {
+//    #ifdef IMUTYPE_LSM9DS1  
+//    uint8_t fifoSRCbyte;
+//    fifoSRCbyte=I2CreadByte(_i2cAddress_AccelGyro, FIFO_SRC) & 0x3F; // 00111111 - number of bytes available
+//    if (fifoSRCbyte >0) return true; else return false;
+//    #endif
+//    }
 
 void readAccelGyro(bool tempUpdate=true)
 {
+  
  int16_t axRaw,ayRaw,azRaw,gxRaw,gyRaw,gzRaw; 
   uint8_t temp_a[6]; // We'll read six bytes from the accelerometer into temp 
+  uint8_t temp_g[6];  // x/y/z gyro register data stored here
+
+#ifdef IMUTYPE_LSM9DS1  
   I2CreadBytes(_i2cAddress_AccelGyro,OUT_X_L_XL, temp_a, 6); // Read 6 bytes, beginning at OUT_X_L_XL  
   axRaw = (temp_a[1] << 8) | temp_a[0]; // Store x-axis values into ax
   ayRaw = (temp_a[3] << 8) | temp_a[2]; // Store y-axis values into ay
   azRaw = (temp_a[5] << 8) | temp_a[4]; // Store z-axis values into az 
      
-  uint8_t temp_g[6];  // x/y/z gyro register data stored here
   I2CreadBytes(_i2cAddress_AccelGyro, OUT_X_L_G, temp_g,6);  // Read the six raw data registers sequentially into data array
   
   gxRaw = (temp_g[1] << 8) | temp_g[0]; // Store x-axis values into gx
@@ -55,7 +90,7 @@ void readAccelGyro(bool tempUpdate=true)
 
 if (tempUpdate)
     {
-    uint8_t temp_t[2]; // temeperature register data
+     uint8_t temp_t[2]; // temeperature register data      
     //I2CreadBytes(_i2cAddress_AccelGyro, OUT_TEMP_L, temp_t,2);  // Read the 2 raw data registers sequentially into data array
     temp_t[0]=I2CreadByte(_i2cAddress_AccelGyro,OUT_TEMP_L);
     temp_t[1]=I2CreadByte(_i2cAddress_AccelGyro,OUT_TEMP_H);
@@ -77,6 +112,48 @@ if (tempUpdate)
   gx=scaleGyro(gxRaw) + 0.00029 * imuTemp * imuTemp + 0.08007 * imuTemp -2.261;
   gy=scaleGyro(gyRaw) + 0.0004215 * imuTemp * imuTemp + 0.004307 * imuTemp -0.3264;
   gz=scaleGyro(gzRaw) + 0.0004122 * imuTemp * imuTemp + -0.01383 * imuTemp + 0.04016;
+#endif
+
+
+#ifdef IMUTYPE_ISM330DHCX
+// read accelerometer output
+I2CreadBytesISM330(_i2CAddressISM330,OUTX_L_A, temp_a, 6); // Read 6 bytes, beginning at OUTX_L_A 
+  axRaw = (temp_a[1] << 8) | temp_a[0]; // Store x-axis values into ax
+  ayRaw = (temp_a[3] << 8) | temp_a[2]; // Store y-axis values into ay
+  azRaw = (temp_a[5] << 8) | temp_a[4]; // Store z-axis values into az     
+
+// read gyro output 
+I2CreadBytesISM330(_i2CAddressISM330, OUTX_L_G, temp_g,6);  // Read the six raw data registers sequentially into data array 
+  gxRaw = (temp_g[1] << 8) | temp_g[0]; // Store x-axis values into gx
+  gyRaw = (temp_g[3] << 8) | temp_g[2]; // Store y-axis values into gy
+  gzRaw = (temp_g[5] << 8) | temp_g[4]; // Store z-axis values into gz
+   
+ax=scaleAccel(axRaw);
+ay=scaleAccel(ayRaw);
+az=scaleAccel(azRaw);
+gx=scaleGyro(gxRaw);
+gy=scaleGyro(gyRaw);
+gz=scaleGyro(gzRaw);
+//Serial.printf("VerticalG: %.4f,LateralG: %.4f,ForwardG: %.4f,RollRate: %.4f,PitchRate: %.4f,YawRate: %.4f\n",az,ay,ax,gx,gy,gz);
+
+// read IMU temperature output
+if (tempUpdate)
+    {
+     uint8_t temp_t[2]; // temeperature register data      
+    temp_t[0]=I2CreadByte(_i2CAddressISM330,ISM330_OUT_TEMP_L);
+    temp_t[1]=I2CreadByte(_i2CAddressISM330,ISM330_OUT_TEMP_H);
+    int16_t tempCount=(temp_t[1] << 8) | temp_t[0]; 
+    float imuTempRaw = ((float) (tempCount / ISM330_TEMP_SCALE + ISM330_TEMP_BIAS)); // IMU chip temperature in degrees Celsius
+    imuTempAvg.addValue(imuTempRaw);
+    imuTemp=imuTempAvg.getFastAverage();
+    //imuTempDerivativeInput=imuTempRaw;
+    //imuTempRateAvg.addValue(-imuTempDerivative.Compute()*10.0); //10Hz sample rate on imuTemp, SavGolay derivative filter takes 20-25uSec
+    //imuTempRate=imuTempRateAvg.getFastAverage(); 
+    #ifdef IMUTEMPDEBUG
+    Serial.printf("Temp: %.1fC\n",imuTemp);
+    #endif     
+    }
+#endif 
 }
 
 
@@ -106,6 +183,7 @@ void configureAxes()
 verticalGloadAxis="";
 lateralGloadAxis="";
 forwardGloadAxis="";
+#ifdef IMUTYPE_LSM9DS1
 String axisMapArray[24][5]={
                   //{portsOrientation,boxtopOrientation,verticalGloadAxis,lateralGloadAxis,forwardGloadAxis}
                   {"FORWARD","LEFT","Y","Z","X"},
@@ -138,6 +216,42 @@ String axisMapArray[24][5]={
                   {"DOWN","LEFT","-X","-Z","Y"},
                   {"DOWN","RIGHT","-X","Z","-Y"}
                   };
+#endif
+#ifdef IMUTYPE_ISM330DHCX
+String axisMapArray[24][5]={ 
+                  //{portsOrientation,boxtopOrientation,verticalGloadAxis,lateralGloadAxis,forwardGloadAxis}
+                  // X and Y axes are swapped on this chip
+                  {"FORWARD","LEFT","X","Z","Y"},
+                  {"FORWARD","RIGHT","-X","Z","Y"},
+                  {"FORWARD","UP","Z","X","Y"}, // Vac's RV-4
+                  {"FORWARD","DOWN","-Z","-X","Y"},
+                  
+                  {"AFT","LEFT","-X","-Z","-Y"},
+                  {"AFT","RIGHT","X","Z","-Y"},
+                  {"AFT","UP","Z","-X","-Y"}, // bench box
+                  {"AFT","DOWN","-Z","X","-Y"},
+                  
+                  {"LEFT","FORWARD","-X","-Y","Z"},
+                  {"LEFT","AFT","X","-Y","-Z"},
+                  {"LEFT","UP","Z","-Y","X"}, // Zlin Z-50
+                  {"LEFT","DOWN","-Z","-Y","X"},
+                  
+                  {"RIGHT","FORWARD","X","Y","Z"},
+                  {"RIGHT","AFT","-X","Y","-Z"},
+                  {"RIGHT","UP","Z","Y","-X"},                  
+                  {"RIGHT","DOWN","-Z","Y","X"}, // Tron's RV-8
+                  
+                  {"UP","FORWARD","Y","-X","Z"},
+                  {"UP","AFT","Y","X","-Z"},
+                  {"UP","LEFT","Y","-Z","-X"},
+                  {"UP","RIGHT","Y","Z","X"}, // Doc's box on Vac's RV-4
+                  
+                  {"DOWN","FORWARD","-Y","X","Z"},
+                  {"DOWN","AFT","-Y","-X","-Z"}, // Lenny's RV-10
+                  {"DOWN","LEFT","-Y","-Z","X"},
+                  {"DOWN","RIGHT","-Y","Z","-X"}
+                  };
+#endif                
 
 for (int i=0;i<24;i++)
     {    
@@ -224,6 +338,5 @@ Gz=getGyroForAxis(yawGyroAxis); // yaw rate
 #ifdef LOGDATA_IMU_RATE
 logData();
 #endif
-processAHRS(); // calculate AHRS
-    
+processAHRS(); // calculate AHRS 
 }  

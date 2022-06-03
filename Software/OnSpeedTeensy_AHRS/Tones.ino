@@ -128,7 +128,6 @@ if (highTone && tonePlaying==SOLID_TONE)
 }
 
 void tonePlayHandler(){
-    switchCheck(); // check main switch   
     if (!switchState)
             {
             return; // return if tones are disabled 

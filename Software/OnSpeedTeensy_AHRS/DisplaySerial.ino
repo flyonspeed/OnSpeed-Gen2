@@ -1,24 +1,29 @@
 void writeSerialData()
 {
-char serialOutString[78];  
 if (serialOutPort!="NONE" && millis()-serialoutLastUpdate>100) // update every 100ms, 10Hz
     {
+    char serialOutString[78];  
           // send serial data if enabled
           
               // send G3X formatted data
               
               int percentLift;
               float displayAOA;
+              float displayIAS;
               float smoothingAlpha=2.0/(serialDisplaySmoothing+1);
               int displayVerticalG;
-  
-              if  (PaltSmoothed==0) PaltSmoothed=kalmanAlt*3.28084; else PaltSmoothed=kalmanAlt*3.28084 * smoothingAlpha/10+ (1-smoothingAlpha/10)*PaltSmoothed; // increased smoothing needed
+#ifdef SPHERICAL_PROBE
+  displayIAS=efisIAS;
+#else
+  displayIAS=IAS;
+#endif      
+              if (PaltSmoothed==0) PaltSmoothed=kalmanAlt*3.28084; else PaltSmoothed=kalmanAlt*3.28084 * smoothingAlpha/10+ (1-smoothingAlpha/10)*PaltSmoothed; // increased smoothing needed
               VerticalGSmoothed=aVert * smoothingAlpha+ (1-smoothingAlpha)*VerticalGSmoothed;
               displayVerticalG=ceil(VerticalGSmoothed * 10.0);
               
               LateralGSmoothed=aLat * smoothingAlpha+ (1-smoothingAlpha)*LateralGSmoothed;
               // don't output precentLift at low speeds.
-              if (IAS>=muteAudioUnderIAS)
+              if (displayIAS>=muteAudioUnderIAS)
                   {
                   displayAOA=AOA;                
                   // scale percent lift
@@ -40,7 +45,7 @@ if (serialOutPort!="NONE" && millis()-serialoutLastUpdate>100) // update every 1
 
               if (serialOutFormat == "G3X")
               {
-              sprintf(serialOutString,"=1100000000%+04i%+05i___%04u%+06i____%+03i%+03i%02u__________",int(smoothedPitch*10),-int(smoothedRoll*10),unsigned(IAS*10),int(PaltSmoothed),int(-LateralGSmoothed*100),displayVerticalG,unsigned(percentLift));
+              sprintf(serialOutString,"=1100000000%+04i%+05i___%04u%+06i____%+03i%+03i%02u__________",int(smoothedPitch*10),-int(smoothedRoll*10),unsigned(displayIAS*10),int(PaltSmoothed),int(-LateralGSmoothed*100),displayVerticalG,unsigned(percentLift));
               serialCRC=0x00;
               for (int i=0;i<=54;i++) serialCRC+=serialOutString[i];
               } else
@@ -100,7 +105,7 @@ if (serialOutPort!="NONE" && millis()-serialoutLastUpdate>100) // update every 1
                         int spinRecoveryCue=0;
                         int OATc=0;
                         //Serial.printf("AOA: %.1f,pecentlift: %i\n",displayAOA,percentLift);
-                        sprintf(serialOutString,"#1%+04i%+05i%04u%+06i%+05i%+03i%+03i%02u%+04i%+04i%+03i%+04i%+03i%+04i%+04i%+04i%+04i%+04i%+02i%02u",int(smoothedPitch*10),int(-smoothedRoll*10),unsigned(IAS*10),int(PaltSmoothed),int(gYaw*10),int(-LateralGSmoothed*100),displayVerticalG,unsigned(percentLift),int(displayAOA*10),int(floor(kalmanVSI*196.85/10)),int(OATc),int (flightPath*10),int(flapsPos),int(stallWarningAOA*10),int(onSpeedAOAslow*10),int(onSpeedAOAfast*10),int(LDmaxAOA*10),int(gOnsetRate*100),int(spinRecoveryCue),unsigned(dataMark));                        
+                        sprintf(serialOutString,"#1%+04i%+05i%04u%+06i%+05i%+03i%+03i%02u%+04i%+04i%+03i%+04i%+03i%+04i%+04i%+04i%+04i%+04i%+02i%02u",int(smoothedPitch*10),int(-smoothedRoll*10),unsigned(displayIAS*10),int(PaltSmoothed),int(gYaw*10),int(-LateralGSmoothed*100),displayVerticalG,unsigned(percentLift),int(displayAOA*10),int(floor(kalmanVSI*196.85/10)),int(OATc),int (flightPath*10),int(flapsPos),int(stallWarningAOA*10),int(onSpeedAOAslow*10),int(onSpeedAOAfast*10),int(LDmaxAOA*10),int(gOnsetRate*100),int(spinRecoveryCue),unsigned(dataMark));                        
                         serialCRC=0x00;
                         for (int i=0;i<=75;i++) serialCRC+=serialOutString[i];
                         }

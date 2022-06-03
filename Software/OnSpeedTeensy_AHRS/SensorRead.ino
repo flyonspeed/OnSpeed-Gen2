@@ -122,17 +122,18 @@ P45Smoothed=P45Avg.getFastAverage();
 calcAOA(PfwdSmoothed,P45Smoothed); // calculate AOA based on Pfwd/P45;
 
 // calculate airspeed
-#ifdef SPHERICAL_PROBE
-  IAS=SphericalIASCurve(PfwdSmoothed,P45Smoothed);
-#else
   PfwdPascal=((PfwdSmoothed+pFwdBias - 0.1*16383) * 2/(0.8*16383) -1) * 6894.757;
   if (PfwdPascal>0)
       {
       IAS=sqrt(2*PfwdPascal/1.225)* 1.94384; // knots // physics based calculation
+      #ifdef SPHERICAL_PROBE
+        IAS=IASCURVE(IAS); // for now use a hardcoded IAS curve for a spherical probe. CAS curve parameters can only take 4 decimals. Not accurate enough.
+      #else  
       if (casCurveEnabled) IAS=curveCalc(IAS,casCurve);  // use CAS correction curve if enabled 
+      #endif
+      
       }
       else IAS=0;
-#endif
 
 newSensorDataAvailable=true; //sensor data available for flightpath calcs
 #ifdef LOGDATA_PRESSURE_RATE
@@ -143,11 +144,11 @@ updateTones();
 
 #ifdef SENSORDEBUG
     char debugSensorBuffer[500];
-    sprintf(debugSensorBuffer, "timeStamp: %lu,Pfwd: %i,PfwdSmoothed: %.2f,P45: %i,P45Smoothed: %.2f,Pstatic: %.2f,Palt: %.2f,IAS: %.2f,AOA: %.2f,flapsPos: %i,VerticalG: %.2f,LateralG: %.2f,ForwardG: %.2f,RollRate: %.2f,PitchRate: %.2f,YawRate: %.2f, AccelPitch %.2f",timeStamp,Pfwd,PfwdSmoothed,P45,P45Smoothed,Pstatic,Palt,IAS,AOA,flapsPos,aVert,aLat,aFwd,gRoll,gPitch,gYaw,accPitch);
+    int lineLength=sprintf(debugSensorBuffer, "timeStamp: %lu,Pfwd: %i,PfwdSmoothed: %.2f,P45: %i,P45Smoothed: %.2f,Pstatic: %.2f,Palt: %.2f,IAS: %.2f,AOA: %.2f,flapsPos: %i,VerticalG: %.2f,LateralG: %.2f,ForwardG: %.2f,RollRate: %.2f,PitchRate: %.2f,YawRate: %.2f, AccelPitch %.2f",millis(),Pfwd,PfwdSmoothed,P45,P45Smoothed,Pstatic,Palt,IAS,AOA,flapsPos,aVert,aLat,aFwd,gRoll,gPitch,gYaw,accPitch);
 
     if (readBoom)
       {
-      sprintf(debugSensorBuffer, ",boomStatic: %.2f,boomDynamic: %.2f,boomAlpha: %.2f,boomBeta: %.2f\n",boomStatic,boomDynamic,boomAlpha,boomBeta);
+      sprintf(debugSensorBuffer+lineLength, ",boomStatic: %.2f,boomDynamic: %.2f,boomAlpha: %.2f,boomBeta: %.2f\n",boomStatic,boomDynamic,boomAlpha,boomBeta);
       }  
     Serial.println(debugSensorBuffer);
 #endif    
@@ -158,5 +159,4 @@ updateTones();
       
 readingSensors=false;
 //Serial.println(micros()-sensorstarttime);    
-
 }

@@ -1,7 +1,11 @@
 void calcAOA (float Pfwd, float P45)
 {  
 float smoothingAlpha;
-if (Pfwd>0)
+
+#ifdef SPHERICAL_PROBE
+ coeffP=PCOEFF(Pfwd,P45);
+#else
+ if (Pfwd>0)
     {
     coeffP=PCOEFF(Pfwd,P45);
     } else 
@@ -10,6 +14,7 @@ if (Pfwd>0)
           coeffP=0;
           return;
           }
+#endif        
           
 // calculate and smooth AOA
 if (aoaSmoothing==0) smoothingAlpha=1.0; else smoothingAlpha=1.0/aoaSmoothing;

@@ -2,32 +2,39 @@ void readEfisSerial()
 {
 if (readEfisData)
     {
-    int packetCount=0;  
-    if (efisType.substring(0,3)=="VN-") // VN-300 type data, binary format
-      {
+    int packetCount=0;
+      
+    if (efisID==1) // VN-300 type data, binary format
+      {             
               // parse VN-300 and VN-100 data
+             #ifdef EFISDATADEBUG
+             efisMaxAvailable=max(Serial3.available(),efisMaxAvailable);
+             #endif
              while (Serial3.available() && packetCount<EFIS_PACKET_SIZE)
                   {
-                  // receive one line of data and break                                    
+                  // receive one line of data and break                                 
                   byte vn_inByte=Serial3.read();                  
                   lastReceivedEfisTime=millis();
                   packetCount++;
                   charsreceived++;
-                  if (vn_inByte == 0xFA )
+                  if (vn_inByte == 0x19 && previousEfisByte == 0xFA) // first two bytes must match for packet start
                       {
-                      efisPacketInProgress=true;                     
+                      efisPacketInProgress=true;
                       vnBuffer[0]=0xFA;
-                      vnBufferIndex=1; // reset buffer index when sync byte is received
+                      vnBuffer[1]=0x19;
+                      vnBufferIndex=2; // reset buffer index when sync byte is received
                       continue;
-                      //return;
                       }
                   if (vnBufferIndex<127 && efisPacketInProgress)
                       {
                       // add character to buffer
                       vnBuffer[vnBufferIndex]=vn_inByte;
                       vnBufferIndex++;
-                      if (vnBufferIndex==127) // 103 without lat/lon
+                      }
+                   
+                   if (vnBufferIndex==127 && efisPacketInProgress) // 103 without lat/lon
                           {
+                            
                           // got full packet, check header
                           //byte packetHeader[8]={0xFA,0x19,0xA0,0x01,0x91,0x00,0x42,0x01}; without lat/lon
                           byte packetHeader[8]={0xFA,0x19,0xE0,0x01,0x91,0x00,0x42,0x01}; // with lat/long
@@ -77,7 +84,6 @@ if (readEfisData)
                              vnAngularRateRoll=array2float(vnBuffer,8);
                              vnAngularRatePitch=array2float(vnBuffer,12);
                              vnAngularRateYaw=array2float(vnBuffer,16);
-
                              vnGnssLat=array2double(vnBuffer,20);
                              vnGnssLon=array2double(vnBuffer,28);
                              //vnGnssAlt=array2double(vnBuffer,36);
@@ -89,7 +95,6 @@ if (readEfisData)
                              vnAccelFwd=array2float(vnBuffer,56);
                              vnAccelLat=array2float(vnBuffer,60);
                              vnAccelVert=array2float(vnBuffer,64);
-
                             
                              // gnss
                              //vnTimeUTC= vnBuffer,68 (+8 bytes);
@@ -104,11 +109,12 @@ if (readEfisData)
                              String vnFracSec=String(int(millis()/10));
                              vnFracSec=vnFracSec.substring(vnFracSec.length()-2);
                              vnTimeUTC=String(vnHour)+":"+String(vnMin)+":"+String(vnSec)+"."+vnFracSec;
+
                              vnGPSFix=vnBuffer[76];
                              vnGnssVelNedNorth=array2float(vnBuffer,77);
                              vnGnssVelNedEast=array2float(vnBuffer,81);
                              vnGnssVelNedDown=array2float(vnBuffer,85);
-                             
+                            
                              
                              // attitude
                              vnYaw=array2float(vnBuffer,89);
@@ -122,17 +128,15 @@ if (readEfisData)
                              vnYawSigma=array2float(vnBuffer,113);
                              vnRollSigma=array2float(vnBuffer,117);
                              vnPitchSigma=array2float(vnBuffer,121);
-                             
-                             efisTimestamp=millis();
-                             
+                             efisTimestamp=millis();                                                                                                             
+                             Serial.println(efisTimestamp);
                              #ifdef EFISDATADEBUG
-                             Serial.printf("\nvnAngularRateRoll: %.2f,vnAngularRatePitch: %.2f,vnAngularRateYaw: %.2f,vnVelNedNorth: %.2f,vnVelNedEast: %.2f,vnVelNedDown: %.2f,vnAccelFwd: %.2f,vnAccelLat: %.2f,vnAccelVert: %.2f,vnYaw: %.2f,vnPitch: %.2f,vnRoll: %.2f,vnLinAccFwd: %.2f,vnLinAccLat: %.2f,vnLinAccVert: %.2f,vnYawSigma: %.2f,vnRollSigma: %.2f,vnPitchSigma: %.2f,vnGnssVelNedNorth: %.2f,vnGnssVelNedEast: %.2f,vnGnssVelNedDown: %.2f,vnGnssLat: %.6f,vnGnssLon: %.6f,vnGPSFix: %i,TimeUTC: %s\n",vnAngularRateRoll,vnAngularRatePitch,vnAngularRateYaw,vnVelNedNorth,vnVelNedEast,vnVelNedDown,vnAccelFwd,vnAccelLat,vnAccelVert,vnYaw,vnPitch,vnRoll,vnLinAccFwd,vnLinAccLat,vnLinAccVert,vnYawSigma,vnRollSigma,vnPitchSigma,vnGnssVelNedNorth,vnGnssVelNedEast,vnGnssVelNedDown,vnGnssLat,vnGnssLon,vnGPSFix,vnTimeUTC.c_str());
+                             Serial.printf("\nvnAngularRateRoll: %.2f,vnAngularRatePitch: %.2f,vnAngularRateYaw: %.2f,vnVelNedNorth: %.2f,vnVelNedEast: %.2f,vnVelNedDown: %.2f,vnAccelFwd: %.2f,vnAccelLat: %.2f,vnAccelVert: %.2f,vnYaw: %.2f,vnPitch: %.2f,vnRoll: %.2f,vnLinAccFwd: %.2f,vnLinAccLat: %.2f,vnLinAccVert: %.2f,vnYawSigma: %.2f,vnRollSigma: %.2f,vnPitchSigma: %.2f,vnGnssVelNedNorth: %.2f,vnGnssVelNedEast: %.2f,vnGnssVelNedDown: %.2f,vnGnssLat: %.6f,vnGnssLon: %.6f,vnGPSFix: %i,TimeUTC: %s\n",vnAngularRateRoll,vnAngularRatePitch,vnAngularRateYaw,vnVelNedNorth,vnVelNedEast,vnVelNedDown,vnAccelFwd,vnAccelLat,vnAccelVert,vnYaw,vnPitch,vnRoll,vnLinAccFwd,vnLinAccLat,vnLinAccVert,vnYawSigma,vnRollSigma,vnPitchSigma,vnGnssVelNedNorth,vnGnssVelNedEast,vnGnssVelNedDown,vnGnssLat,vnGnssLon,vnGPSFix,vnTimeUTC.c_str());                             
                              #endif
                           efisPacketInProgress=false;
-                          break; // exit the loop when a packet is completed
                           }                        
-                      }; // else if buffer overflow don't do anything  
-                 } // while
+                 previousEfisByte=vn_inByte;
+                 } // while                
        }  else
                     {                    
                     //read EFIS data, text format
@@ -158,7 +162,7 @@ if (readEfisData)
                             if (efis_inChar == char(0x0A))
                                         {
                                         // end of line
-                                              if (efisType=="ADVANCED")
+                                              if (efisID==2) // Advanced
                                                   {
                                                     #ifdef EFISDATADEBUG
                                                     int lineLength=efisBufferString.length();
@@ -264,7 +268,7 @@ if (readEfisData)
                                                                        }
                                                   } // end efisType ADVANCED
                                                   else
-                                                    if (efisType=="DYNOND10") 
+                                                    if (efisID==3) // Dynon D10
                                                        {             
                                                         if (efisBufferString.length()==DYNON_SERIAL_LEN)
                                                             {
@@ -314,7 +318,7 @@ if (readEfisData)
                                                               }
                                                        } // end efisType DYNOND10
                                                        else
-                                                          if (efisType=="GARMING5")
+                                                          if (efisID==4) // G5
                                                               {
                                                               if (efisBufferString.length()==59 && efisBufferString[0]=='=' && efisBufferString[1]=='1' && efisBufferString[2]=='1')
                                                                          {
@@ -359,7 +363,7 @@ if (readEfisData)
                                                                           }
                                                               } // efisType GARMING5
                                                               else
-                                                               if (efisType=="GARMING3X")
+                                                               if (efisID==5) // G3X
                                                                          {                                                                                              
                                                                           // parse G3X attitude data, 10hz
                                                                           if (efisBufferString.length()==59 && efisBufferString[0]=='=' && efisBufferString[1]=='1' && efisBufferString[2]=='1')

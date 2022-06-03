@@ -15,6 +15,7 @@ void SendWifiData()
  float wifiRoll=0;
  float wifiFlightpath=0;
  float wifiVSI=0;
+ float wifiIAS=0;
  
  if (isnan(AOA) || IAS<muteAudioUnderIAS)
     {
@@ -31,7 +32,7 @@ void SendWifiData()
 
 if (calSource=="EFIS")
   {
-  if (efisType.substring(0,3)=="VN-")
+  if (efisID==1)
      {
      // use Vectornav data
      wifiPitch=vnPitch;
@@ -53,6 +54,12 @@ if (calSource=="EFIS")
                       } else wifiFlightpath=0;
             wifiVSI=efisVSI;          
             }             
+ // send efisIAS if spherical probe is in use otehrwise use OnspeedIAS.        
+ #ifdef SPHERICAL_PROBE
+ wifiIAS=efisIAS;
+ #else
+ wifiIAS=IAS;
+ #endif           
   
   }
    else
@@ -61,9 +68,11 @@ if (calSource=="EFIS")
         wifiRoll=-smoothedRoll; // degrees
         wifiFlightpath=flightPath; // degrees
         wifiVSI=kalmanVSI*196.85; // fpm
+        wifiIAS=IAS;
         }
+      
 
- sprintf(crc_buffer,"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%.6f,%i,%.2f,%.2f,%.2f,%.2f",wifiAOA,wifiPitch,wifiRoll,IAS,kalmanAlt*3.28084,verticalGload,aLat,alphaVA,LDmaxAOA,onSpeedAOAfast,onSpeedAOAslow,stallWarningAOA,flapsPos,coeffP,dataMark,wifiVSI,wifiFlightpath,gPitch,DecelRate);
+ sprintf(crc_buffer,"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%.6f,%i,%.2f,%.2f,%.2f,%.2f",wifiAOA,wifiPitch,wifiRoll,wifiIAS,kalmanAlt*3.28084,verticalGload,aLat,alphaVA,LDmaxAOA,onSpeedAOAfast,onSpeedAOAslow,stallWarningAOA,flapsPos,coeffP,dataMark,wifiVSI,wifiFlightpath,gPitch,DecelRate);
  for (unsigned int i=0;i<strlen(crc_buffer);i++) CRC=CRC+char(crc_buffer[i]); // claculate simple CRC
  sprintf(json_buffer,"$ONSPEED,%s,%i\n",crc_buffer,CRC);
  Serial4.print(json_buffer);

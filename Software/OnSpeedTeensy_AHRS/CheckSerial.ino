@@ -4,7 +4,7 @@ void checkSerial()
       #ifdef EFISDATADEBUG
       Serial.printf("\nloopcount: %i",loopcount);
       Serial.printf("\nchars received: %i",charsreceived);     
-      Serial.printf("\nmax available efis characters: %i",efisMaxAvailable);
+      Serial.printf("\nmax available efis characters: %i\n",efisMaxAvailable);
       efisMaxAvailable=0;
       #endif
             

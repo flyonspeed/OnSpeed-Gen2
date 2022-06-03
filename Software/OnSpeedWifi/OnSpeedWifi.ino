@@ -29,7 +29,7 @@
 
 #define BAUDRATE_WIFI         921600
 
-String wifi_fw="3.2.2j"; // wifi firmware version
+String wifi_fw="3.2.2p"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
@@ -638,7 +638,7 @@ void handleCalWizard()
                           aoaCurve[flapIndex].Items[2]=stringToFloat(server.arg("curve1"));
                           aoaCurve[flapIndex].Items[3]=stringToFloat(server.arg("curve2"));
                           aoaCurve[flapIndex].curveType=1; // polynomial
-                          //save configartion       
+                          //save configuration
                           String newconfigString;
                           configurationToString(newconfigString);
                           if (setConfigString(newconfigString))
@@ -650,7 +650,6 @@ void handleCalWizard()
                                     server.send(200, "text/html", "ERROR: Could not save configuration. Try again.");
                                     return;
                                     }
-                          break;
                           }                                                     
                        }
                   server.send(200, "text/html", "ERROR saving to config: Could not find the flap position " + server.arg("flapsPos") +" degrees in the configuration file: "+flapDegrees.Count);

@@ -8,7 +8,7 @@ ToneTimer.end();
 timersDisabled=true;
 // wait for timers to finish running
 unsigned long delayTimer=millis();
-while (millis()-delayTimer<200)
+while (millis()-delayTimer<250)
       {
       checkWatchdog();
       }
@@ -19,7 +19,7 @@ void timersOn()
 Serial.println("Timers ON");
 // wait before starting timers
 unsigned long delayTimer=millis();
-while (millis()-delayTimer<200)
+while (millis()-delayTimer<250)
       {
       checkWatchdog();
       }
