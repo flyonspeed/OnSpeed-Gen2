@@ -49,7 +49,6 @@ int SDwriteBytesCount=0;
         #ifdef SDCARDDEBUG
         timerstart=micros();
         #endif
-        Serial.println("SDwrite");
         SensorFile.write(SDwriteCache,SD_WRITE_BLOCK_SIZE);
         //Serial.println(SDwriteCache);
         datalogBytesAvailable-=SD_WRITE_BLOCK_SIZE;
@@ -69,9 +68,7 @@ int SDwriteBytesCount=0;
         timerstart=micros();                
         #endif
         checkWatchdog();
-        Serial.println("SDclosing"); 
         SensorFile.close(); // this takes long sometimes
-        Serial.println("SDclosed"); 
         checkWatchdog();        
        
         #ifdef SDCARDDEBUG

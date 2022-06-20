@@ -8,7 +8,8 @@
 
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION   "v3.2.2p" // 6/2/2022 disabled IMU gyro hardware high pass filter
+#define VERSION   "3.2.2q" //disabled IMU gyro LPF1 filter, really disabled high pass filter this time...
+//"v3.2.2p" // 6/2/2022 disabled IMU gyro hardware high pass filter
 //"v3.2.2o" // 5/28/2022  changed logged pitch and roll resolution to 2 digits, fixed VN-300 parser
 //"v3.2.2n" // 5/11/2022  Added code to read new IMU ISM330DHXC, fixed large config file saving issue
 //"v3.2.2m" // 3/26/2022 use efisIAS with calibration wizard if equiped with spherical probe
@@ -66,8 +67,8 @@
 #define DEFAULT_CONFIG  default_config
 
 // data logging frequency
-#define LOGDATA_PRESSURE_RATE
-//#define LOGDATA_IMU_RATE
+//#define LOGDATA_PRESSURE_RATE
+#define LOGDATA_IMU_RATE
 
 // AOA probe type
 //#define SPHERICAL_PROBE // uncomment this if using custom OnSpeed spherical head probe.
@@ -856,6 +857,7 @@ if (!volumeControl)
  
  // kalman altitude filter
  kalman.Configure(43.5882, 40.0599, 1.1201e-07, Palt * FT2M,0.00,0.00); // configure the Kalman filter (Smooth altitude and IVSI from Baro + accelerometers)
+ // optimized values: 33.9534. 25.004, 0.13843
 
 // set interrupt priorities
   

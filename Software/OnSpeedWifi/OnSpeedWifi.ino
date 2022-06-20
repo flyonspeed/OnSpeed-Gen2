@@ -29,7 +29,7 @@
 
 #define BAUDRATE_WIFI         921600
 
-String wifi_fw="3.2.2p"; // wifi firmware version
+String wifi_fw="3.2.2q"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";

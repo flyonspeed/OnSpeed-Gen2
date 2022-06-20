@@ -31,8 +31,11 @@ delay(50);
 // enable gyroscope 
  I2CwriteByte(_i2CAddressISM330,CTRL2_G, B01010000); // 208 hz, 250dps
 delay(50);
-// enable gyroscope hi-pass filter
- I2CwriteByte(_i2CAddressISM330,CTRL7_G, B01000000); // high performance mode, disable high pass filter
+// disable gyroscope hi-pass filter
+ I2CwriteByte(_i2CAddressISM330,CTRL7_G, B00000000); // high performance mode, disable high pass filter
+delay(50);
+// disable LPF1
+ I2CwriteByte(_i2CAddressISM330,CTRL4_C, B00000000); // disable low pass filter 1, LPF2 is still on at 67hz bandwidth
 delay(50);
 // set fifo
  I2CwriteByte(_i2CAddressISM330,FIFO_CTRL4, B00110000); // bypass mode, fifo disabled
