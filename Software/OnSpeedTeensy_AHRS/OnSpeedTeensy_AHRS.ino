@@ -157,7 +157,7 @@ bool configLoaded=false;
 
 //serial inputs
 bool readBoom; // boom connected to Serial 1
-bool readEfisData; // Serial3, read and log serial data (ahrs/aoa/airspeed/altitude data from Dynon EFIS D10, D100, D180, Skyview/ADVANCED, Garmin G5 and G3X)
+bool readEfisData; // Serial3, read and log serial data (ahrs/aoa/airspeed/altitude data from Dynon EFIS D10, D100, D180, Skyview/ADVANCED, Garmin G5 and G3X, MGL)
 bool casCurveEnabled;
 
 int lineCount=0; // log replay variable
@@ -526,7 +526,7 @@ volatile int efisHeading=-1;
 String efisTime="";
 volatile unsigned long efisTimestamp=millis();
 String efisType="";
-int efisID=0; // 0= none, 1=VN-300, 2=AFS/SkyView, 3=Dynon D10, 4=G5,5=G3X
+int efisID=0; // 0= none, 1=VN-300, 2=AFS/SkyView, 3=Dynon D10, 4=G5, 5=G3X, 6=MGL
 String calSource="";
 bool efisPacketInProgress=false;
 unsigned long lastReceivedEfisTime;

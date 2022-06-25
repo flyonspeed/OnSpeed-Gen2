@@ -136,8 +136,74 @@ if (readEfisData)
                           efisPacketInProgress=false;
                           }                        
                  previousEfisByte=vn_inByte;
-                 } // while                
-       }  else
+                 } // while
+                 
+      } else if (efisID==6) { // MGL data, binary format
+         while (Serial3.available())  {
+              // receive one byte                                 
+              byte vn_inByte=Serial3.read();                  
+              lastReceivedEfisTime=millis();
+              packetCount++;
+              charsreceived++;
+              if (vn_inByte == 5 && efisPacketInProgress == false) {
+                vn_inByte=Serial3.read();
+                if (vn_inByte == 2 ) {
+                  efisPacketInProgress=true;
+                  vnBufferIndex=0; // reset buffer index when sync byte is received
+                  continue;
+                }
+              } else if(efisPacketInProgress==true) {
+                  packetCount = Serial3.readBytes(vnBuffer, 6);  // now read the header (6 bytes)
+                  if(packetCount != 6) {efisPacketInProgress = false; continue;}
+
+                  if(vnBuffer[2] == 3) { // # attitude flight data.
+                    // 1           2           3          4         5         6     7       8        9        10        11         12       13           14        15        16        17 (number)
+                    // 0           2           4          6         8         10    12      14       16       18        20         22       24           25        26        27        28 (postion)
+                    // HeadingMag, PitchAngle, BankAngle, YawAngle, TurnRate, Slip, GForce, LRForce, FRForce, BankRate, PitchRate, YawRate, SensorFlags, Padding1, Padding2, Padding3, Checksum 
+                    // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
+                    // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
+                    packetCount = Serial3.readBytes(vnBuffer, 32);  // now read # attitude information 32 bytes
+                    if(packetCount != 32) {efisPacketInProgress = false; continue;}
+                    
+                    // heading
+                    efisHeading = convertUnSignedIntFrom2Bytes(vnBuffer,0) / 10;
+                    efisPitch = convertSignedIntFrom2Bytes(vnBuffer,2);
+                    efisRoll = convertSignedIntFrom2Bytes(vnBuffer,4);
+                    efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer,12) * 0.01;
+                    efisLateralG = convertSignedIntFrom2Bytes(vnBuffer,14) * 0.01;
+
+                    efisPacketInProgress=false;
+                  }
+                  else if(vnBuffer[2] == 1) {  // # primary flight data.
+                    // 1          2          3      4      5      6     7      8          9      10        11           12     13     14     15     16     17    18      19     20  (number)
+                    // 0          4          8      10     12     14    16     18         20     22        23           24     25     26     27     28     29    30      31     32  (postion)
+                    // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
+                    // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
+                    packetCount = Serial3.readBytes(vnBuffer, 36);  // flight data. 36 bytes
+                    if(packetCount != 36) {efisPacketInProgress = false; continue;}
+                    
+                    efisPalt = convertUnSignedIntFrom4Bytes(vnBuffer,0) ; 
+                    //theEFISData.bAlt = convertUnSignedIntFrom4Bytes(vnBuffer,4);
+              
+                    efisIAS = convertUnSignedIntFrom2Bytes(vnBuffer,8) * 0.05399565; // airspeed in 10th of Km/h.  * 0.05399565 to knots. * 0.6213712 to mph
+                    efisTAS = convertUnSignedIntFrom2Bytes(vnBuffer,10) * 0.05399565; // convert to knots
+                    efisPercentLift = convertSignedIntFrom2Bytes(vnBuffer,12) ; // aoa
+                    efisVSI = convertSignedIntFrom2Bytes(vnBuffer,14) /10 ; // vsi
+                    //float baro = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.0029529983071445;  //convert from mbar to inches of mercury.
+                    //theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
+                    efisOAT = convertSignedIntFrom2Bytes(vnBuffer,20);  // c
+                    
+                    efisPacketInProgress=false;
+                  }
+                  
+              } else {
+                // do nothing...
+              }
+
+         }
+
+      
+      }  else
                     {                    
                     //read EFIS data, text format
                     int efisCharCount=0;

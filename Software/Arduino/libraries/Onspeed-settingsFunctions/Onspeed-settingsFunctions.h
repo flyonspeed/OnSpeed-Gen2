@@ -286,7 +286,8 @@ if (efisType=="VN-300") efisID=1; else
     if (efisType=="ADVANCED") efisID=2; else
         if (efisType=="DYNOND10") efisID=3; else
             if (efisType=="GARMING5") efisID=4; else
-                    if (efisType=="GARMING3X") efisID=5; else efisID=0;
+                    if (efisType=="GARMING3X") efisID=5; else
+                        if (efisType=="MGL") efisID=6; else efisID=0;
     
 // calibration data source
 calSource=getConfigValue(configString,"CALWIZ_SOURCE");
