@@ -154,7 +154,7 @@ if (readEfisData)
                 }
               } else if(efisPacketInProgress==true) {
                   packetCount = Serial3.readBytes(vnBuffer, 6);  // now read the header (6 bytes)
-                  if(packetCount != 6) {efisPacketInProgress = false; continue;}
+                  if(packetCount != 6) {efisPacketInProgress = false; continue;} // if didn't read in all bytes then skip and wait for next.
 
                   if(vnBuffer[2] == 3) { // # attitude flight data.
                     // 1           2           3          4         5         6     7       8        9        10        11         12       13           14        15        16        17 (number)
@@ -163,16 +163,15 @@ if (readEfisData)
                     // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
                     // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
                     packetCount = Serial3.readBytes(vnBuffer, 32);  // now read # attitude information 32 bytes
-                    if(packetCount != 32) {efisPacketInProgress = false; continue;}
+                    if(packetCount != 32) {efisPacketInProgress = false; continue;}  // if didn't read in all bytes then skip and wait for next.
                     
-                    // heading
-                    efisHeading = convertUnSignedIntFrom2Bytes(vnBuffer,0) / 10;
-                    efisPitch = convertSignedIntFrom2Bytes(vnBuffer,2);
-                    efisRoll = convertSignedIntFrom2Bytes(vnBuffer,4);
+                    efisHeading = convertUnSignedIntFrom2Bytes(vnBuffer,0) / 10; // heading
+                    efisPitch = convertSignedIntFrom2Bytes(vnBuffer,2) * 0.1;
+                    efisRoll = convertSignedIntFrom2Bytes(vnBuffer,4) * 0.1;
                     efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer,12) * 0.01;
                     efisLateralG = convertSignedIntFrom2Bytes(vnBuffer,14) * 0.01;
 
-                    efisPacketInProgress=false;
+                    efisPacketInProgress=false; // done.. ready to read next message.
                   }
                   else if(vnBuffer[2] == 1) {  // # primary flight data.
                     // 1          2          3      4      5      6     7      8          9      10        11           12     13     14     15     16     17    18      19     20  (number)
@@ -180,11 +179,10 @@ if (readEfisData)
                     // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
                     // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
                     packetCount = Serial3.readBytes(vnBuffer, 36);  // flight data. 36 bytes
-                    if(packetCount != 36) {efisPacketInProgress = false; continue;}
+                    if(packetCount != 36) {efisPacketInProgress = false; continue;} // if didn't read in all bytes then skip and wait for next.
                     
                     efisPalt = convertUnSignedIntFrom4Bytes(vnBuffer,0) ; 
                     //theEFISData.bAlt = convertUnSignedIntFrom4Bytes(vnBuffer,4);
-              
                     efisIAS = convertUnSignedIntFrom2Bytes(vnBuffer,8) * 0.05399565; // airspeed in 10th of Km/h.  * 0.05399565 to knots. * 0.6213712 to mph
                     efisTAS = convertUnSignedIntFrom2Bytes(vnBuffer,10) * 0.05399565; // convert to knots
                     efisPercentLift = convertSignedIntFrom2Bytes(vnBuffer,12) ; // aoa
@@ -193,6 +191,9 @@ if (readEfisData)
                     //theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
                     efisOAT = convertSignedIntFrom2Bytes(vnBuffer,20);  // c
                     
+                    efisPacketInProgress=false;  // done.. ready to read next message.
+                  } else {
+                    // else unkown data packet.  so ignore.
                     efisPacketInProgress=false;
                   }
                   
