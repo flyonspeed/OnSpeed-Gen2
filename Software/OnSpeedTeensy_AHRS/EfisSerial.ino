@@ -141,11 +141,15 @@ if (readEfisData)
       } else if (efisID==6) { // MGL data, binary format
          while (Serial3.available())  {
               // receive one byte                                 
-              byte vn_inByte=Serial3.read();                  
+              byte vn_inByte;
+              if(efisPacketInProgress == false) vn_inByte = Serial3.read();
               lastReceivedEfisTime=millis();
               packetCount++;
               charsreceived++;
               if (vn_inByte == 5 && efisPacketInProgress == false) {
+                #ifdef EFISDATADEBUG
+                Serial.printf(".\n");
+                #endif
                 vn_inByte=Serial3.read();
                 if (vn_inByte == 2 ) {
                   efisPacketInProgress=true;
@@ -171,6 +175,10 @@ if (readEfisData)
                     efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer,12) * 0.01;
                     efisLateralG = convertSignedIntFrom2Bytes(vnBuffer,14) * 0.01;
 
+                    #ifdef EFISDATADEBUG
+                    Serial.printf("MGL Head: %.2f \tPitch: %.2f\tRoll: %.2f\tvG:%.2f,\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
+                    #endif
+
                     efisPacketInProgress=false; // done.. ready to read next message.
                   }
                   else if(vnBuffer[2] == 1) {  // # primary flight data.
@@ -190,12 +198,19 @@ if (readEfisData)
                     //float baro = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.0029529983071445;  //convert from mbar to inches of mercury.
                     //theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
                     efisOAT = convertSignedIntFrom2Bytes(vnBuffer,20);  // c
+
+                    #ifdef EFISDATADEBUG
+                    Serial.printf("MGL Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i,\tVSI:%i,\tOAT:%i\n",efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
+                    #endif
                     
                     efisPacketInProgress=false;  // done.. ready to read next message.
                   } else {
                     // else unkown data packet.  so ignore.
                     efisPacketInProgress=false;
-                  }
+                    #ifdef EFISDATADEBUG
+                    Serial.printf("MGL...\n");
+                    #endif
+                  }                  
                   
               } else {
                 // do nothing...
