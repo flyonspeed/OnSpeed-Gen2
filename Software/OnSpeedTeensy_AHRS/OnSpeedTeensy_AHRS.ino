@@ -8,7 +8,8 @@
 
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION   "3.2.2q" //disabled IMU gyro LPF1 filter, really disabled high pass filter this time...
+#define VERSION   "3.2.2r" //MGL efis input
+//"3.2.2q" //disabled IMU gyro LPF1 filter, really disabled high pass filter this time...
 //"v3.2.2p" // 6/2/2022 disabled IMU gyro hardware high pass filter
 //"v3.2.2o" // 5/28/2022  changed logged pitch and roll resolution to 2 digits, fixed VN-300 parser
 //"v3.2.2n" // 5/11/2022  Added code to read new IMU ISM330DHXC, fixed large config file saving issue
@@ -21,7 +22,7 @@
 //"v3.2.2h"     // 12/1/2021 fixed serial data processing
 //"v3.2.2g"     // added IMU temp logging, fixed wifi transfer issue (update wifi code to same version)
 //"v3.2.2f1"    // 10/22/2021 fixed VN-300 parser issue, 
-//"v3.2.2f"     // added AHRS corrections for IMU installation errors and flightpath calculation. Calibration Wizard on the Wifi side. Added VN-300 GPS lat/lon to logs. Reconfigure Vn-300 output format, add [Common] Group 1 / "Position" output
+//"v3.2.2f"     // added AHRS corrections for IMfU installation errors and flightpath calculation. Calibration Wizard on the Wifi side. Added VN-300 GPS lat/lon to logs. Reconfigure Vn-300 output format, add [Common] Group 1 / "Position" output
 // 5/25/2021     //switched over to CP3
 //"v3.2.1a"     // 3/15/2021 fixed boom curves
 //"v3.2"        // static pressure bias, roll bias and cas curve type
@@ -74,8 +75,8 @@
 //#define SPHERICAL_PROBE // uncomment this if using custom OnSpeed spherical head probe.
 
 // imu type
-//#define IMUTYPE_LSM9DS1  // original IMU
-#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
+#define IMUTYPE_LSM9DS1  // original IMU
+//#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
 
 // boom type
 //#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
@@ -118,7 +119,7 @@
 
 // debug config. Comment out any of them to disable serial debug output.
 //#define SENSORDEBUG // show sensor debug
-//#define EFISDATADEBUG // show efis data debug
+#define EFISDATADEBUG // show efis data debug
 //#define BOOMDATADEBUG  // show boom data debug
 //#define TONEDEBUG // show tone related debug info
 //#define SDCARDDEBUG  // show SD writing debug info

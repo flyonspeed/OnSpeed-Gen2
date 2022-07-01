@@ -148,7 +148,7 @@ if (readEfisData)
               charsreceived++;
               if (vn_inByte == 5 && efisPacketInProgress == false) {
                 #ifdef EFISDATADEBUG
-                Serial.printf(".\n");
+                //Serial.printf(".\n");
                 #endif
                 vn_inByte=Serial3.read();
                 if (vn_inByte == 2 ) {
