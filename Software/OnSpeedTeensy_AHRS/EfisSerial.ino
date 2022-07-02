@@ -167,16 +167,22 @@ if (readEfisData)
                     // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
                     // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
                     packetCount = Serial3.readBytes(vnBuffer, 32);  // now read # attitude information 32 bytes
-                    if(packetCount != 32) {efisPacketInProgress = false; continue;}  // if didn't read in all bytes then skip and wait for next.
+                    if(packetCount != 32) { // if didn't read in all bytes then skip and wait for next.
+                      #ifdef EFISDATADEBUG
+                      Serial.printf("MGL Attitude> BAD message length\n");
+                      #endif
+                      efisPacketInProgress = false; 
+                      continue;
+                      }  
                     
-                    efisHeading = convertUnSignedIntFrom2Bytes(vnBuffer,0) / 10; // heading
+                    efisHeading = int(convertUnSignedIntFrom2Bytes(vnBuffer,0) / 10); // heading
                     efisPitch = convertSignedIntFrom2Bytes(vnBuffer,2) * 0.1;
                     efisRoll = convertSignedIntFrom2Bytes(vnBuffer,4) * 0.1;
                     efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer,12) * 0.01;
                     efisLateralG = convertSignedIntFrom2Bytes(vnBuffer,14) * 0.01;
 
                     #ifdef EFISDATADEBUG
-                    Serial.printf("MGL Head: %.2f \tPitch: %.2f\tRoll: %.2f\tvG:%.2f,\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
+                    Serial.printf("MGL Attitude> Head: %.2f \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
                     #endif
 
                     efisPacketInProgress=false; // done.. ready to read next message.
@@ -187,7 +193,13 @@ if (readEfisData)
                     // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
                     // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
                     packetCount = Serial3.readBytes(vnBuffer, 36);  // flight data. 36 bytes
-                    if(packetCount != 36) {efisPacketInProgress = false; continue;} // if didn't read in all bytes then skip and wait for next.
+                    if(packetCount != 36) {
+                      #ifdef EFISDATADEBUG
+                      Serial.printf("MGL primary> BAD message length\n");
+                      #endif
+                      efisPacketInProgress = false; 
+                      continue;
+                    } // if didn't read in all bytes then skip and wait for next.
                     
                     efisPalt = convertUnSignedIntFrom4Bytes(vnBuffer,0) ; 
                     //theEFISData.bAlt = convertUnSignedIntFrom4Bytes(vnBuffer,4);
@@ -200,7 +212,7 @@ if (readEfisData)
                     efisOAT = convertSignedIntFrom2Bytes(vnBuffer,20);  // c
 
                     #ifdef EFISDATADEBUG
-                    Serial.printf("MGL Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i,\tVSI:%i,\tOAT:%i\n",efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
+                    Serial.printf("MGL primary> Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%i\n",efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
                     #endif
                     
                     efisPacketInProgress=false;  // done.. ready to read next message.
