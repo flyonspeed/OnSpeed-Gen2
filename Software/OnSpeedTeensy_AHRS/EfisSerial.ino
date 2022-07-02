@@ -210,6 +210,8 @@ if (readEfisData)
                     //float baro = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.0029529983071445;  //convert from mbar to inches of mercury.
                     //theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
                     efisOAT = convertSignedIntFrom2Bytes(vnBuffer,20);  // c
+                    sprintf(efisTime,"%i:%i:%i",vnBuffer[24],vnBuffer[25],vnBuffer[26]);  // pull the time out of message.
+                    efisTimestamp=millis();
 
                     #ifdef EFISDATADEBUG
                     Serial.printf("MGL primary> Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%i\n",efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
