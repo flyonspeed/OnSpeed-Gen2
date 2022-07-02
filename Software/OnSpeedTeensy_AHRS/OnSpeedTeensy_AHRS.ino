@@ -8,7 +8,7 @@
 
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION "3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU
+#define VERSION "3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU, more responsive Datamark button
 //"3.2.2q" //disabled IMU gyro LPF1 filter, really disabled high pass filter this time...
 //"v3.2.2p" // 6/2/2022 disabled IMU gyro hardware high pass filter
 //"v3.2.2o" // 5/28/2022  changed logged pitch and roll resolution to 2 digits, fixed VN-300 parser
