@@ -116,8 +116,7 @@ while (SensorFile.available())
                  
                   dataMark=valueArray[10].toInt();
 
-                  kalmanAlt=valueArray[54].toFloat()*0.3048;
-                  kalmanVSI=valueArray[55].toFloat()/197;
+                  VSI=valueArray[55].toFloat()/197;
 
                   imuIndex=12;                 
                   // get IMU values from log                 
@@ -137,7 +136,6 @@ while (SensorFile.available())
                   //Serial.printf("%.1f,%.1f,%.1f\n",AOA,derivedAOA,flightPath);
                   //Serial.printf("%.1f,%.1f\n",smoothedIAS,smoothedTAS);
                   //Serial.printf("%.1f,%.1f\n",kalmanAlt*3.28084,Palt);
-                  //Serial.printf("kalmanVSI: %.1f,kalmanAlt: %.1f,AOA: %.1f\n",kalmanVSI*3.28084,kalmanAlt*3.28084,AOA);
                   //Serial.printf("%.1f,%.1f\n",efisPitch,flightPath);
                   //Serial.printf("%.2f,%.2f\n",earthVertG,AVertCorr-1);
 //                  Serial.print("Time: ");

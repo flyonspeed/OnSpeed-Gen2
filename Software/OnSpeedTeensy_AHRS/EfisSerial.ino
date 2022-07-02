@@ -141,7 +141,7 @@ if (readEfisData)
       } else if (efisID==6) { // MGL data, binary format
          while (Serial3.available())  {
               // receive one byte                                 
-              byte vn_inByte=Serial3.read();                  
+              byte vn_inByte=Serial3.read();
               lastReceivedEfisTime=millis();
               packetCount++;
               charsreceived++;
@@ -192,6 +192,10 @@ if (readEfisData)
                     efisOAT = convertSignedIntFrom2Bytes(vnBuffer,20);  // c
                     
                     efisPacketInProgress=false;  // done.. ready to read next message.
+                    #ifdef EFISDATADEBUG
+                      Serial.printf("MGL iEfIS: efisIAS %.2f, efisPitch %.2f, efisRoll %.2f, efisLateralG %.2f, efisVerticalG %.2f, efisPercentLift %i, efisPalt %i, efisVSI %i, efisTAS %.2f, efisOAT %.2f, efisHeading %i ,efisTime %s\n", efisIAS, efisPitch, efisRoll, efisLateralG, efisVerticalG, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisHeading, efisTime.c_str());                        
+                                                                                                        
+                    #endif
                   } else {
                     // else unkown data packet.  so ignore.
                     efisPacketInProgress=false;
