@@ -213,12 +213,12 @@ float calculatedGLimitNegative;
 int aoaSmoothing=20;  // AOA smoothing window (number of samples to lag)
 int pressureSmoothing=15; // median filter window for pressure smoothing/despiking
 
-const int accSmoothing=5; // accelerometer smoothing, Simple moving average
+const int accSmoothing=192; // accelerometer smoothing, Simple moving average
 const int imuTempSmoothing=20; // imu temperature smoothing, Simple moving average, 10 = 1 second
 //const int imuTempRateSmoothing=5; // imu temperature smoothing, Simple moving average
 const int gyroSmoothing=30; // gyro smoothing, Simple moving average
 const int compSmoothing=20; // acceleration compensation smoothing (linear and centripetal)
-const int iasSmoothing=255; // airspeed smoothing, 314 sample moving average for 208hz [optimized for ISM330 IMU]
+const int iasSmoothing=138; // airspeed smoothing, 314 sample moving average for 208hz [optimized for ISM330 IMU]
 const int tasSmoothing=10; //[optimized for ISM330 IMU]
 const int ahrsSmoothing=50; // ahrs smoothing, Exponential
 const int serialDisplaySmoothing=10; // smoothing serial display data (LateralG, verticalG)  10hz data.
@@ -642,20 +642,18 @@ RunningAverage PfwdAvg(10);
 RunningAverage P45Avg(10);
 RunningAverage IASdiffAvg(iasSmoothing);
 RunningAverage TASAvg(tasSmoothing);
-RunningAverage aVertAvg(accSmoothing);
-RunningAverage aLatAvg(accSmoothing);
-RunningAverage aFwdAvg(accSmoothing);
+//RunningAverage aVertAvg(accSmoothing);
+//RunningAverage aLatAvg(accSmoothing);
+//RunningAverage aFwdAvg(accSmoothing);
 RunningAverage GxAvg(gyroSmoothing);
 RunningAverage GyAvg(gyroSmoothing);
 RunningAverage GzAvg(gyroSmoothing);
-
-RunningAverage aVertCompAvg(compSmoothing);
-RunningAverage aLatCompAvg(compSmoothing);
-RunningAverage aFwdCompAvg(compSmoothing);
+//RunningAverage aVertCompAvg(compSmoothing);
+//RunningAverage aLatCompAvg(compSmoothing);
+//RunningAverage aFwdCompAvg(compSmoothing);
 RunningAverage aVertCorrAvg(accSmoothing);
 RunningAverage aLatCorrAvg(accSmoothing);
 RunningAverage aFwdCorrAvg(accSmoothing);
-
 RunningAverage vBaroAvg(vBaroSmoothing);
 RunningAverage earthVertGAvg(earthVertGSmoothing);
 

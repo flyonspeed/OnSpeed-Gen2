@@ -43,13 +43,13 @@ long double array2double(byte buffer[], int startIndex)
     return out;
 }
 
-int convertUnSignedIntFrom4Bytes(char data[], int startIndex) {
+int convertUnSignedIntFrom4Bytes(byte data[], int startIndex) {
     return (data[startIndex + 3] << 24) | (data[startIndex + 2] << 16) | (data[startIndex + 1] << 8) | data[startIndex];
 }
-int convertUnSignedIntFrom2Bytes(char data[], int startIndex) {
+int convertUnSignedIntFrom2Bytes(byte data[], int startIndex) {
     return ((data[startIndex+1 ] << 8) | (data[startIndex] & 0xFF));
 }
-int convertSignedIntFrom2Bytes(char data[], int startIndex) {
+int convertSignedIntFrom2Bytes(byte data[], int startIndex) {
   return (short)(((data[startIndex+1 ]) & 0xFF) << 8 | (data[startIndex]) & 0xFF);
 }
 
