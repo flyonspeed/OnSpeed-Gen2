@@ -175,14 +175,14 @@ if (readEfisData)
                       continue;
                       }  
                     
-                    efisHeading = int(convertUnSignedIntFrom2Bytes(vnBuffer,0) / 10); // heading
+                    efisHeading = int(convertUnSignedIntFrom2Bytes(vnBuffer,0) * 0.1); // heading
                     efisPitch = convertSignedIntFrom2Bytes(vnBuffer,2) * 0.1;
                     efisRoll = convertSignedIntFrom2Bytes(vnBuffer,4) * 0.1;
                     efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer,12) * 0.01;
                     efisLateralG = convertSignedIntFrom2Bytes(vnBuffer,14) * 0.01;
 
                     #ifdef EFISDATADEBUG
-                    Serial.printf("MGL Attitude> Head: %.2f \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
+                    Serial.printf("MGL Attitude> Head: %i \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
                     #endif
 
                     efisPacketInProgress=false; // done.. ready to read next message.
@@ -209,13 +209,13 @@ if (readEfisData)
                     efisVSI = convertSignedIntFrom2Bytes(vnBuffer,14) /10 ; // vsi
                     //float baro = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.0029529983071445;  //convert from mbar to inches of mercury.
                     //theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
-                    efisOAT = convertSignedIntFrom2Bytes(vnBuffer,20);  // c
+                    efisOAT = convertUnSignedIntFrom2Bytes(vnBuffer,20);  // c
                     //sprintf(efisTime,"%i:%i:%i",byte(vnBuffer[24]),byte(vnBuffer[25]),byte(vnBuffer[26]));  // pull the time out of message.
                     efisTime = String(vnBuffer[24])+":"+String(vnBuffer[25])+":"+String(vnBuffer[26]);
                     efisTimestamp=millis();
 
                     #ifdef EFISDATADEBUG
-                    Serial.printf("MGL primary> time:%i:%i:%i Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%i\n",vnBuffer[24],vnBuffer[25],vnBuffer[26],efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
+                    Serial.printf("MGL primary> time:%i:%i:%i Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%.2f\n",vnBuffer[24],vnBuffer[25],vnBuffer[26],efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
                     #endif
                     
                     efisPacketInProgress=false;  // done.. ready to read next message.
