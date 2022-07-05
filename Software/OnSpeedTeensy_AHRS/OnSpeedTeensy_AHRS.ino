@@ -8,7 +8,7 @@
 
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION "3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU, more responsive Datamark button
+#define VERSION   "3.2.2r" //MGL efis input
 //"3.2.2q" //disabled IMU gyro LPF1 filter, really disabled high pass filter this time...
 //"v3.2.2p" // 6/2/2022 disabled IMU gyro hardware high pass filter
 //"v3.2.2o" // 5/28/2022  changed logged pitch and roll resolution to 2 digits, fixed VN-300 parser
@@ -22,7 +22,7 @@
 //"v3.2.2h"     // 12/1/2021 fixed serial data processing
 //"v3.2.2g"     // added IMU temp logging, fixed wifi transfer issue (update wifi code to same version)
 //"v3.2.2f1"    // 10/22/2021 fixed VN-300 parser issue, 
-//"v3.2.2f"     // added AHRS corrections for IMU installation errors and flightpath calculation. Calibration Wizard on the Wifi side. Added VN-300 GPS lat/lon to logs. Reconfigure Vn-300 output format, add [Common] Group 1 / "Position" output
+//"v3.2.2f"     // added AHRS corrections for IMfU installation errors and flightpath calculation. Calibration Wizard on the Wifi side. Added VN-300 GPS lat/lon to logs. Reconfigure Vn-300 output format, add [Common] Group 1 / "Position" output
 // 5/25/2021     //switched over to CP3
 //"v3.2.1a"     // 3/15/2021 fixed boom curves
 //"v3.2"        // static pressure bias, roll bias and cas curve type
@@ -75,8 +75,8 @@
 //#define SPHERICAL_PROBE // uncomment this if using custom OnSpeed spherical head probe.
 
 // imu type
-//#define IMUTYPE_LSM9DS1  // original IMU
-#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
+#define IMUTYPE_LSM9DS1  // original IMU
+//#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
 
 // boom type
 //#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.

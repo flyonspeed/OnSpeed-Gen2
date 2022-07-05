@@ -50,7 +50,7 @@ int convertUnSignedIntFrom2Bytes(byte data[], int startIndex) {
     return ((data[startIndex+1 ] << 8) | (data[startIndex] & 0xFF));
 }
 int convertSignedIntFrom2Bytes(byte data[], int startIndex) {
-  return (short)(((data[startIndex+1 ]) & 0xFF) << 8 | (data[startIndex]) & 0xFF);
+  return (short)(((data[startIndex+1 ]) & 0xFF) << 8 | ((data[startIndex]) & 0xFF) );
 }
 
 
