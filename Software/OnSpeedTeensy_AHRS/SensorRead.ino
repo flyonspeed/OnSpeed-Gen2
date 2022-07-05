@@ -135,7 +135,6 @@ calcAOA(PfwdSmoothed,P45Smoothed); // calculate AOA based on Pfwd/P45;
       }
       else IAS=0;
 
-newSensorDataAvailable=true; //sensor data available for flightpath calcs
 #ifdef LOGDATA_PRESSURE_RATE
     logData();
 #endif

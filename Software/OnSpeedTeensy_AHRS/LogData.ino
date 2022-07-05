@@ -29,7 +29,7 @@ if (sdLogging)
                         charsAdded+=sprintf(logLine+charsAdded, ",%.2f,%.2f,%.2f,%.2f,%.2f,%i,%i,%i,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%i,%i,%i,%s",efisIAS,efisPitch,efisRoll,efisLateralG,efisVerticalG,efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisFuelRemaining,efisFuelFlow,efisMAP,efisRPM,efisPercentPower,efisHeading,efisAge,efisTime.c_str());
                         }                        
             }               
-          charsAdded+=sprintf(logLine+charsAdded, ",%.2f,%.2f,%.2f,%.2f",earthVertG,flightPath,kalmanAlt*3.28084,kalmanVSI*196.85);
+          charsAdded+=sprintf(logLine+charsAdded, ",%.2f,%.2f,%.2f",earthVertG,flightPath,VSI*196.85);
           sprintf(logLine+charsAdded,"\n");
   //      Serial.print("8");        
 
@@ -70,7 +70,7 @@ void createLogFile()
                                                 else
                                                     SensorFile.print(",efisIAS,efisPitch,efisRoll,efisLateralG,efisVerticalG,efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisFuelRemaining,efisFuelFlow,efisMAP,efisRPM,efisPercentPower,efisMagHeading,efisAge,efisTime");
                                     }
-                            SensorFile.print(",EarthVerticalG, FlightPath, KalmanAlt, KalmanVSI");
+                            SensorFile.print(",EarthVerticalG, FlightPath, VSI");
                             SensorFile.println();
                             SensorFile.close();
                             }  else

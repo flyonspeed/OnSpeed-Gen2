@@ -219,6 +219,10 @@ if (readEfisData)
                     #endif
                     
                     efisPacketInProgress=false;  // done.. ready to read next message.
+                    #ifdef EFISDATADEBUG
+                      Serial.printf("MGL iEfIS: efisIAS %.2f, efisPitch %.2f, efisRoll %.2f, efisLateralG %.2f, efisVerticalG %.2f, efisPercentLift %i, efisPalt %i, efisVSI %i, efisTAS %.2f, efisOAT %.2f, efisHeading %i ,efisTime %s\n", efisIAS, efisPitch, efisRoll, efisLateralG, efisVerticalG, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisHeading, efisTime.c_str());                        
+                                                                                                        
+                    #endif
                   } else {
                     // else unkown data packet.  so ignore.
                     efisPacketInProgress=false;

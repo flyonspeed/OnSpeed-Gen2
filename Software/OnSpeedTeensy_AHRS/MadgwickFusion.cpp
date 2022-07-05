@@ -27,8 +27,8 @@
 //-------------------------------------------------------------------------------------------
 // Definitions
 
-#define sampleFreqDef   238.0f          // sample frequency in Hz
-#define betaDef         0.018f            // 2 * proportional gain
+#define sampleFreqDef   208.0f          // sample frequency in Hz
+#define betaDef         0.041153f            // 2 * proportional gain
 #define DEG2RAD 0.0174533            // degrees to radians
 //#define betaDef         0.015f
 //============================================================================================

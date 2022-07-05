@@ -213,15 +213,19 @@ float calculatedGLimitNegative;
 int aoaSmoothing=20;  // AOA smoothing window (number of samples to lag)
 int pressureSmoothing=15; // median filter window for pressure smoothing/despiking
 
-const int accSmoothing=5; // accelerometer smoothing, Simple moving average
+const int accSmoothing=192; // accelerometer smoothing, Simple moving average
 const int imuTempSmoothing=20; // imu temperature smoothing, Simple moving average, 10 = 1 second
 //const int imuTempRateSmoothing=5; // imu temperature smoothing, Simple moving average
 const int gyroSmoothing=30; // gyro smoothing, Simple moving average
 const int compSmoothing=20; // acceleration compensation smoothing (linear and centripetal)
-const int iasSmoothing=20; // airspeed smoothing, 50 sample moving average for 238hz
-const int tasSmoothing=30;
+const int iasSmoothing=138; // airspeed smoothing, 314 sample moving average for 208hz [optimized for ISM330 IMU]
+const int tasSmoothing=10; //[optimized for ISM330 IMU]
 const int ahrsSmoothing=50; // ahrs smoothing, Exponential
 const int serialDisplaySmoothing=10; // smoothing serial display data (LateralG, verticalG)  10hz data.
+const int earthVertGSmoothing=201; // [optimized for ISM330 IMU]
+const int vBaroSmoothing=255; // [optimized for ISM330 IMU]
+const float vsiAlpha=0.999; //[optimized for ISM330 IMU]
+const float gyroScaleCorrection=1.14; // [optimized for ISM330 IMU]
 
 intArray flapDegrees;
 intArray flapPotPositions;
@@ -284,8 +288,6 @@ float imuSampleRate=238; // 238Hz. 50hz for replay
 #ifdef IMUTYPE_ISM330DHCX
 float imuSampleRate=208; // 208Hz.
 #endif
-
-bool newSensorDataAvailable=false;
 
 volatile bool sendWifiData=false;
 int displayDataCounter=0;
@@ -470,11 +472,9 @@ uint8_t  sectorBuffer[512];
 #include "AudioSampleGlimit.h"
 #include "AudioSampleVnochime.h"
 #include "MadgwickFusion.h"
-#include "KalmanFilter.h"
 #include <SavLayFilter.h>
 
 Madgwick filter;
-KalmanFilter kalman;
 //double imuTempDerivativeInput;
 //SavLayFilter imuTempDerivative (&imuTempDerivativeInput, 1, 15); //Computes the first derivative
 
@@ -482,8 +482,7 @@ double iasDerivativeInput;
 SavLayFilter iasDerivative (&iasDerivativeInput, 1, 15);           //Computes the first derivative
 
 
-volatile float kalmanAlt=0; // meters, Kalman filtered pressure altitude
-volatile float kalmanVSI=0; // m/sec, Kalman filtered instantaneous vertical speed
+volatile float VSI=0; // m/sec, Kalman filtered instantaneous vertical speed
 
 volatile float smoothedPitch=0;
 volatile float smoothedRoll=0;
@@ -633,6 +632,8 @@ volatile float smoothedIASdiff=0.0;                    // smoothed airspeed
 volatile float smoothedTAS=0.0;                    // smoothed airspeed
 volatile float prevIAS=0.0;                        // previous IAS sample (used to calculate acceleartion)
 volatile float Palt=0.00;                          // pressure altitude
+volatile float previousPalt;
+
 float currentRangeSweepValue=RANGESWEEP_LOW_AOA;
 RunningMedian P45Median(pressureSmoothing);
 RunningMedian PfwdMedian(pressureSmoothing);
@@ -641,19 +642,24 @@ RunningAverage PfwdAvg(10);
 RunningAverage P45Avg(10);
 RunningAverage IASdiffAvg(iasSmoothing);
 RunningAverage TASAvg(tasSmoothing);
-RunningAverage aVertAvg(accSmoothing);
-RunningAverage aLatAvg(accSmoothing);
-RunningAverage aFwdAvg(accSmoothing);
+//RunningAverage aVertAvg(accSmoothing);
+//RunningAverage aLatAvg(accSmoothing);
+//RunningAverage aFwdAvg(accSmoothing);
 RunningAverage GxAvg(gyroSmoothing);
 RunningAverage GyAvg(gyroSmoothing);
 RunningAverage GzAvg(gyroSmoothing);
-
-RunningAverage aVertCompAvg(compSmoothing);
-RunningAverage aLatCompAvg(compSmoothing);
-RunningAverage aFwdCompAvg(compSmoothing);
+//RunningAverage aVertCompAvg(compSmoothing);
+//RunningAverage aLatCompAvg(compSmoothing);
+//RunningAverage aFwdCompAvg(compSmoothing);
 RunningAverage aVertCorrAvg(accSmoothing);
 RunningAverage aLatCorrAvg(accSmoothing);
 RunningAverage aFwdCorrAvg(accSmoothing);
+RunningAverage vBaroAvg(vBaroSmoothing);
+RunningAverage earthVertGAvg(earthVertGSmoothing);
+
+ 
+
+
 
 RunningAverage imuTempAvg(imuTempSmoothing);
 //RunningAverage imuTempRateAvg(imuTempRateSmoothing);
@@ -856,11 +862,7 @@ if (!volumeControl)
  // MadGwick attitude filter
  filter.begin(imuSampleRate,-smoothedPitch,smoothedRoll); // start Madgwick filter at 238Hz for LSM9DS1 and 208Hz for ISM330DHXC
  
- // kalman altitude filter
- kalman.Configure(43.5882, 40.0599, 1.1201e-07, Palt * FT2M,0.00,0.00); // configure the Kalman filter (Smooth altitude and IVSI from Baro + accelerometers)
- // optimized values: 33.9534. 25.004, 0.13843
-
-// set interrupt priorities
+ // set interrupt priorities
   
   ToneTimer.priority(96);
   ToneTimer.begin(tonePlayHandler,1000000/pps); // microseconds  
@@ -900,11 +902,16 @@ void loop() {
 loopcount++;
 
 readWifiSerial();
+switchCheck();
 readUSBSerial();
+switchCheck();
 readEfisSerial();
+switchCheck();
 readBoomSerial();
+switchCheck();
 // write serialout data
 writeSerialData();
+switchCheck();
 // check for Serial input lockups
 if (millis()-looptime > 1000)
     {

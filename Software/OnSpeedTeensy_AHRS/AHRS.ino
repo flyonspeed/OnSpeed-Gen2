@@ -6,7 +6,7 @@ void processAHRS()
   smoothedIASdiff=IASdiffAvg.getFastAverage();
   prevIAS=IAS;
 
-  TASAvg.addValue((IAS+IAS * Palt / 1000 * 0.02) * 0.514444); // ballpark TAS 2% per thousand feet pressure altitude
+  TASAvg.addValue(IAS*(1+ Palt / 1000 * 0.02) * 0.514444); 
   smoothedTAS=TASAvg.getFastAverage();
   
   // update AHRS           
@@ -22,20 +22,31 @@ void processAHRS()
   
   float aFwdCorr= Ax * cos(installPitchRad) * cos(installYawRad) + Ay * (sin(installRollRad) * sin(installPitchRad) * cos(installYawRad) - sin(installYawRad) * cos(installRollRad)) + Az * ( cos(installYawRad)  * cos(installRollRad) * sin(installPitchRad)+sin(installYawRad) * sin(installRollRad));
 
-// average gyro values
-  GxAvg.addValue(Gx);
+ // scale correct gyro rates
+  float rollRate=Gx*gyroScaleCorrection;
+  float pitchRate=Gy; // no correction needed
+  float yawRate=Gz*gyroScaleCorrection;
+
+  // calculate installation corrected gyro rates
+  float rollRateCorr=rollRate * cos(installPitchRad) * cos(installYawRad) + pitchRate * ( cos(installYawRad) * sin(installRollRad) * sin(installPitchRad) * - sin(installYawRad) * cos(installRollRad) ) + yawRate * ( cos(installYawRad) * cos(installRollRad) * sin(installPitchRad) + sin(installYawRad) * sin(installRollRad));
+  float pitchRateCorr=rollRate * cos(installPitchRad) * sin(installYawRad) + pitchRate * ( sin(installYawRad) * sin(installRollRad) * sin(installPitchRad) + cos(installYawRad) * cos(installRollRad)) + yawRate * ( sin(installYawRad) * cos(installRollRad) * sin(installPitchRad) - cos(installYawRad) * sin(installRollRad));
+  float yawRateCorr=rollRate * -sin(installPitchRad) + pitchRate * sin(installRollRad) * cos(installPitchRad) + yawRate * cos(installPitchRad) * cos(installRollRad); 
+
+// average gyro values, not used for AHRS
+  GxAvg.addValue(rollRateCorr);
   gRoll=GxAvg.getFastAverage();
-  GyAvg.addValue(Gy);
+  GyAvg.addValue(pitchRateCorr);
   gPitch=GyAvg.getFastAverage();
-  GzAvg.addValue(Gz);
+  GzAvg.addValue(yawRateCorr);
   gYaw=GzAvg.getFastAverage();
+
                   
   // calculate linear acceleration compensation
   // correct for forward acceleration
-  float aFwdCp=-smoothedIASdiff * 0.514444/(1/imuSampleRate) * MPS2G + kalmanVSI * gPitch * DEG2RAD * MPS2G; // // knots to m/sec, 1/238hz (update rate), m/sec2 to g
+  float aFwdCp=smoothedIASdiff * 0.514444/(1/imuSampleRate) * MPS2G; // knots to m/sec, 1/208hz (update rate), m/sec2 to g
   //centripetal acceleration in m/sec2 = speed in m/sec * angular rate in radians
-  float aLatCp=-smoothedTAS * gYaw * DEG2RAD * MPS2G - kalmanVSI * -gRoll * DEG2RAD * MPS2G; // use smoothed gyro values
-  float aVertCp=smoothedTAS * gPitch * DEG2RAD * MPS2G; // TAS knots to m/sec, pitchare in radians, m/sec2 to g
+  float aLatCp=smoothedTAS * yawRateCorr * DEG2RAD * MPS2G;
+  float aVertCp=smoothedTAS * pitchRateCorr * DEG2RAD * MPS2G; // TAS knots to m/sec, pitchrate in radians, m/sec2 to g
   
   // aVertCorr = install corrected acceleration, unsmoothed
   // aVert= install corrected acceleration, smoothed
@@ -44,86 +55,44 @@ void processAHRS()
   // aVertCp= centripetal compensation
   // aVertComp=avg(AvertCorr)+avg(avertCp);
   
- // compensate and smooth Accelerometer values                   
-  aFwdCompAvg.addValue(aFwdCp);
+ // smooth Accelerometer values and add compensation
   aFwdCorrAvg.addValue(aFwdCorr);
   aFwd=aFwdCorrAvg.getFastAverage(); // corrected, smoothed
-  aFwdComp=aFwd+aFwdCompAvg.getFastAverage(); //corrected, compensated, smoothed
+  aFwdComp=aFwd-aFwdCp; //corrected, smoothed and compensated
 
-  aLatCompAvg.addValue(aLatCp);
   aLatCorrAvg.addValue(aLatCorr);
   aLat=aLatCorrAvg.getFastAverage();
-  aLatComp=aLat+aLatCompAvg.getFastAverage();
+  aLatComp=aLat-aLatCp;
 
-  aVertCompAvg.addValue(aVertCp);
   aVertCorrAvg.addValue(aVertCorr);
   aVert=aVertCorrAvg.getFastAverage();
-  aVertComp=aVert+aVertCompAvg.getFastAverage();
-
+  aVertComp=aVert+aVertCp;
                         
-  //Serial.printf("RAW: %0.1f,%0.1f,%0.1f,%0.1f,%0.1f,%0.1f\n",getAccelForAxis(forwardGloadAxis),getAccelForAxis(lateralGloadAxis),getAccelForAxis(verticalGloadAxis),getGyroForAxis(pitchGyroAxis),getGyroForAxis(rollGyroAxis),getGyroForAxis(yawGyroAxis));
-  //Serial.printf("RAW: %0.1f,%0.1f,%0.1f,%0.1f,%0.1f,%0.1f\n",aFwdComp,aLatComp,aVertComp,Gx,Gy,Gz);
-  filter.updateIMU(gRoll, gPitch, gYaw, aFwdComp, aLatComp, aVertComp);
+  filter.updateIMU(rollRateCorr, pitchRateCorr, yawRateCorr, aFwdComp, aLatComp, aVertComp);
                       
-  // calculate smoothed pitch                      
+  // calculate smoothed pitch
   float ahrsSmoothingAlpha=2.0/(ahrsSmoothing+1);
   smoothedPitch= -filter.getPitch() * ahrsSmoothingAlpha+(1-ahrsSmoothingAlpha)*smoothedPitch;
-  smoothedRoll= filter.getRoll() * ahrsSmoothingAlpha +(1-ahrsSmoothingAlpha)*smoothedRoll;
+  smoothedRoll= -filter.getRoll() * ahrsSmoothingAlpha +(1-ahrsSmoothingAlpha)*smoothedRoll;
 
 // MadgWick time is 10-11uS
 // update kalman filter
   float q[4];
   filter.getQuaternion(&q[0],&q[1],&q[2],&q[3]);
   // get earth referenced vertical acceleration
-  earthVertGTotal+= 2.0f * (q[1]*q[3] - q[0]*q[2]) * aFwdCorr + 2.0f * (q[0]*q[1] + q[2]*q[3]) * aLatCorr + (q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]) * aVertCorr - 1.0f;
-  //Serial.printf("q0: %.2f, q1: %.2f, q2: %.2f, q3: %.2f\n",q[0],q[1],q[2],q[3]);
-
-  earthVertGCount++;
-  if (newSensorDataAvailable)
-     {
-      //calculate avg earth vertical G between baro/sensor reads
-      //earthVertG=earthVertGTotal/earthVertGCount;
-      earthVertG=2.0f * (q[1]*q[3] - q[0]*q[2]) * aFwdCorr + 2.0f * (q[0]*q[1] + q[2]*q[3]) * aLatCorr + (q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]) * aVertCorr - 1.0f;
-      kalman.Update(Palt * FT2M , earthVertG * MPS2G, 0.02, &kalmanAlt, &kalmanVSI); // altitude in meters, acceleration in m/s^2  (.002 = 50 hz sensor rate)    
-      newSensorDataAvailable=false;
-      earthVertGTotal=0.0;
-      earthVertGCount=0;
-     } 
+  earthVertGAvg.addValue( 2.0f * (q[1]*q[3] - q[0]*q[2]) * aFwdCorr + 2.0f * (q[0]*q[1] + q[2]*q[3]) * aLatCorr + (q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]) * aVertCorr - 1.0f);
+  earthVertG=earthVertGAvg.getFastAverage();
+  
+  vBaroAvg.addValue((Palt-previousPalt)*0.3048/0.02); // baro rate is 50hz!
+  previousPalt=Palt;
+  float vBaro=vBaroAvg.getFastAverage(); // baro derived vertical speed, smoothed
+  float vAcc=VSI+earthVertG*9.80665*1/imuSampleRate; // acceleration derived vertical speed
+  VSI=vAcc*vsiAlpha+vBaro*(1-vsiAlpha); // complementary filtered VSI in m/sec
   
 // calculate flight path and derived AOA                   
-  if (smoothedTAS!=0) flightPath=asin(kalmanVSI/smoothedTAS) * RAD2DEG; // TAS in m/s, radians to degrees
+  if (smoothedTAS!=0) flightPath=asin(VSI/smoothedTAS) * RAD2DEG; // TAS in m/s, radians to degrees
       else flightPath=0;
-  derivedAOA=smoothedPitch-flightPath;
-
-  // kalman time is 1-2uS
-  //if (millis()-lastReplayOutput>=100)
-  //    {
-  //    noInterrupts();
-      //Serial.printf("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",efisPitch,smoothedPitch,efisRoll,smoothedRoll,AOA,derivedAOA,Palt);
-      //Serial.printf("Ax: %.2f, Ay: %.2f, Az: %.2f, Gx: %.2f, Gy: %.2f, Gz: %.2f,\n",Ax,Ay,Az,Gx,Gy,Gz);
-      //Serial.printf("Ax: %.2f, AxCorr: %.2f, Ay: %.2f, AyCorr: %.2f, Az: %.2f AzCorr: %.2f\n",Ax,aFwdCorr,Ay,aLatCorr,Az,aVertCorr);
-      //Serial.printf("Ax: %.2f, AxCp: %.2f, Ay: %.2f, AyCp: %.2f, Az: %.2f AzCp: %.2f\n",Ax,aFwdComp,Ay,aLatComp,Az,aVertComp);
-      //Serial.printf("Gx: %.2f, GxCorr: %.2f, Gy: %.2f, GyCorr: %.2f, Gz:  %.2f, GzCorr: %.2f\n",Gx,RollRateCorrRad* 57.2957,Gy,PitchRateCorrRad* 57.2957,Gy,YawRateCorrRad* 57.2957);
-
-      //Serial.printf("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n",Gx,RollRateCorrRad* 57.2957,Gy,PitchRateCorrRad* 57.2957,Gy,YawRateCorrRad* 57.2957);
-      
-      //Serial.printf("%.2f,%.2f\n",-filter.getPitch(),filter.getRoll());
-
-      //float calcPitch=atan2(Ax, sqrt(Ay* Ay + Az *Az)) * 57.2957;
-      //float calcRoll = -atan2(Ay, sqrt(Ax* Ax + Az *Az)) * 57.2957;
-      //Serial.printf("%.2f,%.2f\n",calcPitch,calcRoll);
-      //Serial.printf("%.2f,%.2f\n",calcPitch,smoothedPitch);
-      //Serial.printf("%.2f,%.2f\n",calcRoll,smoothedRoll);
-      //float calcPitch=atan2((aFwd), sqrt((aLat)* (aLat) + (aVert) *(aVert))) * 57.2957;
-      //Serial.printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n",-filter.getPitch(),efisPitch,calcPitch,aFwd,aFwdCp, aFwdComp,aLat,aLatCp, aLatComp,aVert,aVertCp, aVertComp,gRoll,gPitch,gYaw,imuSampleRate);
-      //Serial.printf("%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f\n",-filter.getPitch(),filter.getRoll(),efisPitch,calcPitch,Gx,Gy,Gz);
-      //Serial.printf("earthVertG: %.2f\n",earthVertG);
-      //Serial.printf("kalmanAlt: %.2f,kalmanVSI: %.2f\n",kalmanAlt,kalmanVSI);
-      //Serial.printf("%.6f\n",Ax);
-//      interrupts();
-  //    lastReplayOutput=millis();
-  //    }
-  
+  derivedAOA=smoothedPitch-flightPath;  
 }
 
 float calcPitch(float aFwd,float aLat,float aVert)
