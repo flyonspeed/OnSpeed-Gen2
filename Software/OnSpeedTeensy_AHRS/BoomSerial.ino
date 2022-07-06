@@ -10,6 +10,9 @@ void readBoomSerial()
     String parseArray[4];
     int parseArrayIndex=0;  
     serialBoomChar = Serial1.read();
+    #ifdef BOOMDATADEBUG
+    Serial.print(serialBoomChar);
+    #endif
     packetCount++;
     lastReceivedBoomTime=millis();
     if (boomBufferString.length()>=50) boomBufferString=""; // prevent serial buffer overflow                 

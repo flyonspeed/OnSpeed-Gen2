@@ -9,6 +9,7 @@
 // reminder: check for dvision by zero in PCOEFF/CalcAOA
 
 #define VERSION "3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU, more responsive Datamark button
+//"3.2.2r"  6/2/2022//MGL efis input
 //"3.2.2q" //disabled IMU gyro LPF1 filter, really disabled high pass filter this time...
 //"v3.2.2p" // 6/2/2022 disabled IMU gyro hardware high pass filter
 //"v3.2.2o" // 5/28/2022  changed logged pitch and roll resolution to 2 digits, fixed VN-300 parser
@@ -79,7 +80,7 @@
 #define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
 
 // boom type
-//#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
+#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
 
 // curves config
 #define MAX_AOA_CURVES    5 // maximum number of AOA curves (flap/gear positions)
@@ -119,8 +120,8 @@
 
 // debug config. Comment out any of them to disable serial debug output.
 //#define SENSORDEBUG // show sensor debug
-#define EFISDATADEBUG // show efis data debug
-//#define BOOMDATADEBUG  // show boom data debug
+//define EFISDATADEBUG // show efis data debug
+//define BOOMDATADEBUG  // show boom data debug
 //#define TONEDEBUG // show tone related debug info
 //#define SDCARDDEBUG  // show SD writing debug info
 //#define VOLUMEDEBUG  // show audio volume info
@@ -213,17 +214,17 @@ float calculatedGLimitNegative;
 int aoaSmoothing=20;  // AOA smoothing window (number of samples to lag)
 int pressureSmoothing=15; // median filter window for pressure smoothing/despiking
 
-const int accSmoothing=192; // accelerometer smoothing, Simple moving average
+const int accSmoothing=176; // accelerometer smoothing, Simple moving average
 const int imuTempSmoothing=20; // imu temperature smoothing, Simple moving average, 10 = 1 second
 //const int imuTempRateSmoothing=5; // imu temperature smoothing, Simple moving average
 const int gyroSmoothing=30; // gyro smoothing, Simple moving average
 const int compSmoothing=20; // acceleration compensation smoothing (linear and centripetal)
-const int iasSmoothing=138; // airspeed smoothing, 314 sample moving average for 208hz [optimized for ISM330 IMU]
+const int iasSmoothing=136; // airspeed smoothing, 314 sample moving average for 208hz [optimized for ISM330 IMU]
 const int tasSmoothing=10; //[optimized for ISM330 IMU]
 const int ahrsSmoothing=50; // ahrs smoothing, Exponential
 const int serialDisplaySmoothing=10; // smoothing serial display data (LateralG, verticalG)  10hz data.
 const int earthVertGSmoothing=201; // [optimized for ISM330 IMU]
-const int vBaroSmoothing=255; // [optimized for ISM330 IMU]
+const int vBaroSmoothing=231; // [optimized for ISM330 IMU]
 const float vsiAlpha=0.999; //[optimized for ISM330 IMU]
 const float gyroScaleCorrection=1.14; // [optimized for ISM330 IMU]
 
