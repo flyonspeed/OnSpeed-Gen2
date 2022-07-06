@@ -128,9 +128,9 @@ if (readEfisData)
                              vnYawSigma=array2float(vnBuffer,113);
                              vnRollSigma=array2float(vnBuffer,117);
                              vnPitchSigma=array2float(vnBuffer,121);
-                             efisTimestamp=millis();                                                                                                             
-                             Serial.println(efisTimestamp);
-                             #ifdef EFISDATADEBUG
+                             efisTimestamp=millis();
+                             //Serial.print(efisTimestamp);                                                                                                             
+                             #ifdef EFISDATADEBUG                             
                              Serial.printf("\nvnAngularRateRoll: %.2f,vnAngularRatePitch: %.2f,vnAngularRateYaw: %.2f,vnVelNedNorth: %.2f,vnVelNedEast: %.2f,vnVelNedDown: %.2f,vnAccelFwd: %.2f,vnAccelLat: %.2f,vnAccelVert: %.2f,vnYaw: %.2f,vnPitch: %.2f,vnRoll: %.2f,vnLinAccFwd: %.2f,vnLinAccLat: %.2f,vnLinAccVert: %.2f,vnYawSigma: %.2f,vnRollSigma: %.2f,vnPitchSigma: %.2f,vnGnssVelNedNorth: %.2f,vnGnssVelNedEast: %.2f,vnGnssVelNedDown: %.2f,vnGnssLat: %.6f,vnGnssLon: %.6f,vnGPSFix: %i,TimeUTC: %s\n",vnAngularRateRoll,vnAngularRatePitch,vnAngularRateYaw,vnVelNedNorth,vnVelNedEast,vnVelNedDown,vnAccelFwd,vnAccelLat,vnAccelVert,vnYaw,vnPitch,vnRoll,vnLinAccFwd,vnLinAccLat,vnLinAccVert,vnYawSigma,vnRollSigma,vnPitchSigma,vnGnssVelNedNorth,vnGnssVelNedEast,vnGnssVelNedDown,vnGnssLat,vnGnssLon,vnGPSFix,vnTimeUTC.c_str());                             
                              #endif
                           efisPacketInProgress=false;

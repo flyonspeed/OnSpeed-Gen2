@@ -69,8 +69,8 @@
 #define DEFAULT_CONFIG  default_config
 
 // data logging frequency
-//#define LOGDATA_PRESSURE_RATE
-#define LOGDATA_IMU_RATE
+#define LOGDATA_PRESSURE_RATE
+//#define LOGDATA_IMU_RATE
 
 // AOA probe type
 //#define SPHERICAL_PROBE // uncomment this if using custom OnSpeed spherical head probe.
@@ -80,7 +80,7 @@
 #define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
 
 // boom type
-#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
+//#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
 
 // curves config
 #define MAX_AOA_CURVES    5 // maximum number of AOA curves (flap/gear positions)
@@ -120,7 +120,7 @@
 
 // debug config. Comment out any of them to disable serial debug output.
 //#define SENSORDEBUG // show sensor debug
-//define EFISDATADEBUG // show efis data debug
+//#define EFISDATADEBUG // show efis data debug
 //define BOOMDATADEBUG  // show boom data debug
 //#define TONEDEBUG // show tone related debug info
 //#define SDCARDDEBUG  // show SD writing debug info
