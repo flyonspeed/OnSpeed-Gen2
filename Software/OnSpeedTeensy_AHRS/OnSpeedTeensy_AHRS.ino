@@ -6,9 +6,9 @@
 //      and
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
-// reminder: check for dvision by zero in PCOEFF/CalcAOA
 
-#define VERSION "3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU, more responsive Datamark button
+#define VERSION "3.2.3a" //interrupt based push button, updated OneButton library
+//"3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU, more responsive Datamark button
 //"3.2.2r"  6/2/2022//MGL efis input
 //"3.2.2q" //disabled IMU gyro LPF1 filter, really disabled high pass filter this time...
 //"v3.2.2p" // 6/2/2022 disabled IMU gyro hardware high pass filter
@@ -598,6 +598,7 @@ int parseBufferSize=0;
 
 OneButton Switch(SWITCH_PIN, true);  // pin 2  used for the switch input
 
+
 FsFile SensorFile;
 FsFile ListFile;
 char filenameSerial[14];
@@ -771,6 +772,7 @@ void readAccelGyro(bool tempUpdate);
 
 void setup() {
 delay(100);
+attachInterrupt(SWITCH_PIN,switchCheck,CHANGE); // switch interrupt
 initI2C(); // initialize i2c ports
 initAccelGyro(); //initialize accelerometer & Gyro (IMU)  
 Serial.print("OnSpeed Gen2 ");
@@ -828,9 +830,9 @@ if (!volumeControl)
   pinMode(PIN_LED2, OUTPUT);
   pinMode(FLAP_PIN, INPUT_PULLUP);
   pinMode(TESTPOT_PIN, INPUT);
-  pinMode(SWITCH_PIN, INPUT_PULLUP);
+  //pinMode(SWITCH_PIN, INPUT_PULLUP);
 
-  //attachInterrupt(SWITCH_PIN, switchCheck, CHANGE);
+  Switch.setPressTicks(1000); // long press time
   Switch.attachClick(SwitchSingleClick);
   Switch.attachLongPressStart(SwitchLongPress);
    
@@ -903,16 +905,11 @@ void loop() {
 loopcount++;
 
 readWifiSerial();
-switchCheck();
 readUSBSerial();
-switchCheck();
 readEfisSerial();
-switchCheck();
 readBoomSerial();
-switchCheck();
 // write serialout data
 writeSerialData();
-switchCheck();
 // check for Serial input lockups
 if (millis()-looptime > 1000)
     {
