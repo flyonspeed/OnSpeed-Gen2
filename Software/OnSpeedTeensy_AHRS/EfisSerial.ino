@@ -206,12 +206,12 @@ if (readEfisData)
                     efisIAS = convertUnSignedIntFrom2Bytes(vnBuffer,8) * 0.05399565; // airspeed in 10th of Km/h.  * 0.05399565 to knots. * 0.6213712 to mph
                     efisTAS = convertUnSignedIntFrom2Bytes(vnBuffer,10) * 0.05399565; // convert to knots
                     efisPercentLift = convertSignedIntFrom2Bytes(vnBuffer,12) ; // aoa
-                    efisVSI = convertSignedIntFrom2Bytes(vnBuffer,14) /10 ; // vsi
+                    efisVSI = convertSignedIntFrom2Bytes(vnBuffer,14) ; // vsi in FPM.
                     //float baro = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.0029529983071445;  //convert from mbar to inches of mercury.
                     //theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
                     efisOAT = convertUnSignedIntFrom2Bytes(vnBuffer,20);  // c
                     //sprintf(efisTime,"%i:%i:%i",byte(vnBuffer[24]),byte(vnBuffer[25]),byte(vnBuffer[26]));  // pull the time out of message.
-                    efisTime = String(vnBuffer[24])+":"+String(vnBuffer[25])+":"+String(vnBuffer[26]);
+                    efisTime = String(vnBuffer[24])+":"+String(vnBuffer[25])+":"+String(vnBuffer[26]);  // get efis time in string.
                     efisTimestamp=millis();
 
                     #ifdef EFISDATADEBUG
@@ -233,6 +233,7 @@ if (readEfisData)
                   
               } else {
                 // do nothing...
+                efisPacketInProgress=false;
               }
 
          }
