@@ -6,7 +6,7 @@ void switchOnOff()
         analogWrite(PIN_LED2,200);
         // play turn on sound        
         voice1.play(AudioSampleEnabled);
-        delay (1500);
+        //delay (1500);
         switchState=true;
           
   
@@ -26,16 +26,26 @@ void switchOnOff()
 void switchCheck()
 {
 Switch.tick();
+if (switchDoSingleClick)
+    {
+    switchOnOff();
+    switchDoSingleClick=false;
+    }
+if (switchDoLongPress)
+    {
+    dataMark++;
+    Serial.println("Data Mark");
+    voice1.play(AudioSampleDatamark);  
+    switchDoLongPress=false;
+    }
 }
 
 void SwitchSingleClick()
 {
-switchOnOff();
+switchDoSingleClick=true;
 }
 
 void SwitchLongPress()
 {
-Serial.println("Data Mark");
-dataMark++;
-voice1.play(AudioSampleDatamark);
+switchDoLongPress=true;
 }

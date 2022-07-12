@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.2.3b" //mgl updates. VSI.
+#define VERSION "3.2.3c" // 7/12/2022 another switch glitch fix
+//"3.2.3b" //mgl updates. VSI.
 //"3.2.3a" //interrupt based push button, updated OneButton library
 //"3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU, more responsive Datamark button
 //"3.2.2r"  6/2/2022//MGL efis input
@@ -77,8 +78,8 @@
 //#define SPHERICAL_PROBE // uncomment this if using custom OnSpeed spherical head probe.
 
 // imu type
-#define IMUTYPE_LSM9DS1  // original IMU
-//#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
+//#define IMUTYPE_LSM9DS1  // original IMU
+#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
 
 // boom type
 //#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
@@ -180,6 +181,10 @@ int muteAudioUnderIAS=30;
 int volumePercent; // %volume
 int defaultVolume;
 bool ledOn=false;
+
+// switch state
+bool switchDoSingleClick=false;
+bool switchDoLongPress=false;
 
 volatile bool timersDisabled=false;
 
@@ -821,7 +826,7 @@ if (!volumeControl)
   // get initial pressure altitude
   Pstatic=GetStaticPressure();
   Palt=145366.45*(1-pow((Pstatic+pStaticBias)/1013.25,0.190284)); //Pstatic in milliBars,Palt in feet
-
+  previousPalt=Palt;
   // initialize pitch and roll
   readAccelGyro(true);
   smoothedPitch=calcPitch(getAccelForAxis(forwardGloadAxis),getAccelForAxis(lateralGloadAxis), getAccelForAxis(verticalGloadAxis))+pitchBias;

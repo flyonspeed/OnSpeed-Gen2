@@ -65,7 +65,7 @@ if (calSource=="EFIS")
    else
         {
         wifiPitch=smoothedPitch; // degrees
-        wifiRoll=-smoothedRoll; // degrees
+        wifiRoll=smoothedRoll; // degrees
         wifiFlightpath=flightPath; // degrees
         wifiVSI=VSI*196.85; // fpm
         wifiIAS=IAS;
