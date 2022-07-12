@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.2.3a" //interrupt based push button, updated OneButton library
+#define VERSION "3.2.3b" //mgl updates. VSI.
+//"3.2.3a" //interrupt based push button, updated OneButton library
 //"3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU, more responsive Datamark button
 //"3.2.2r"  6/2/2022//MGL efis input
 //"3.2.2q" //disabled IMU gyro LPF1 filter, really disabled high pass filter this time...
@@ -76,8 +77,8 @@
 //#define SPHERICAL_PROBE // uncomment this if using custom OnSpeed spherical head probe.
 
 // imu type
-//#define IMUTYPE_LSM9DS1  // original IMU
-#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
+#define IMUTYPE_LSM9DS1  // original IMU
+//#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
 
 // boom type
 //#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
