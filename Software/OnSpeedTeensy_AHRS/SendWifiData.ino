@@ -67,12 +67,12 @@ if (calSource=="EFIS")
         wifiPitch=smoothedPitch; // degrees
         wifiRoll=smoothedRoll; // degrees
         wifiFlightpath=flightPath; // degrees
-        wifiVSI=VSI*196.85; // fpm
+        wifiVSI=kalmanVSI*MPS2FPM; // fpm
         wifiIAS=IAS;
         }
       
 
- sprintf(crc_buffer,"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%.6f,%i,%.2f,%.2f,%.2f,%.2f",wifiAOA,wifiPitch,wifiRoll,wifiIAS,Palt*3.28084,verticalGload,aLat,alphaVA,LDmaxAOA,onSpeedAOAfast,onSpeedAOAslow,stallWarningAOA,flapsPos,coeffP,dataMark,wifiVSI,wifiFlightpath,gPitch,DecelRate);
+ sprintf(crc_buffer,"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%.6f,%i,%.2f,%.2f,%.2f,%.2f",wifiAOA,wifiPitch,wifiRoll,wifiIAS,kalmanAlt*M2FT,verticalGload,aLat,alphaVA,LDmaxAOA,onSpeedAOAfast,onSpeedAOAslow,stallWarningAOA,flapsPos,coeffP,dataMark,wifiVSI,wifiFlightpath,gPitch,DecelRate);
  for (unsigned int i=0;i<strlen(crc_buffer);i++) CRC=CRC+char(crc_buffer[i]); // claculate simple CRC
  sprintf(json_buffer,"$ONSPEED,%s,%i\n",crc_buffer,CRC);
  Serial4.print(json_buffer);

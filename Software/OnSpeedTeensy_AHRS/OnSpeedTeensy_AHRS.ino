@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.2.3c" // 7/12/2022 another switch glitch fix
+#define VERSION "3.2.3d" // 7/14/2022 tuned kalmanVSI filter
+//"3.2.3c" // 7/12/2022 another switch glitch fix
 //"3.2.3b" //mgl updates. VSI.
 //"3.2.3a" //interrupt based push button, updated OneButton library
 //"3.2.3" // modified and tuned AHRS and iVSI code for the new IMS330 IMU, do not use this code with the old IMS9DS1 IMU, more responsive Datamark button
@@ -229,9 +230,6 @@ const int iasSmoothing=136; // airspeed smoothing, 314 sample moving average for
 const int tasSmoothing=10; //[optimized for ISM330 IMU]
 const int ahrsSmoothing=50; // ahrs smoothing, Exponential
 const int serialDisplaySmoothing=10; // smoothing serial display data (LateralG, verticalG)  10hz data.
-const int earthVertGSmoothing=201; // [optimized for ISM330 IMU]
-const int vBaroSmoothing=100; // [optimized for ISM330 IMU]
-const float vsiAlpha=0.99904; //[optimized for ISM330 IMU]
 const float gyroScaleCorrection=1.14; // [optimized for ISM330 IMU]
 
 intArray flapDegrees;
@@ -442,6 +440,8 @@ volatile double coeffP; // coefficient of pressure
 #define G2MPS   9.80665  // g to m/sec^2
 #define MPS2G   0.101971621 // m/sec^2 to g
 #define FT2M    0.3048 // feet to meters
+#define M2FT    3.28084 // meters to feet
+#define MPS2FPM 196.85 // m/sec to fpm
 
 #define I2C_COMMUNICATION_TIMEOUT 2000  // microseconds
 
@@ -478,9 +478,11 @@ uint8_t  sectorBuffer[512];
 #include "AudioSampleGlimit.h"
 #include "AudioSampleVnochime.h"
 #include "MadgwickFusion.h"
+#include "KalmanFilter.h"
 #include <SavLayFilter.h>
 
 Madgwick filter;
+KalmanFilter kalman;
 //double imuTempDerivativeInput;
 //SavLayFilter imuTempDerivative (&imuTempDerivativeInput, 1, 15); //Computes the first derivative
 
@@ -488,7 +490,9 @@ double iasDerivativeInput;
 SavLayFilter iasDerivative (&iasDerivativeInput, 1, 15);           //Computes the first derivative
 
 
-volatile float VSI=0; // m/sec, Kalman filtered instantaneous vertical speed
+volatile float kalmanAlt=0; // meters, Kalman filtered pressure altitude
+volatile float kalmanVSI=0; // m/sec, Kalman filtered instantaneous vertical speed
+
 
 volatile float smoothedPitch=0;
 volatile float smoothedRoll=0;
@@ -639,8 +643,6 @@ volatile float smoothedIASdiff=0.0;                    // smoothed airspeed
 volatile float smoothedTAS=0.0;                    // smoothed airspeed
 volatile float prevIAS=0.0;                        // previous IAS sample (used to calculate acceleartion)
 volatile float Palt=0.00;                          // pressure altitude
-volatile float previousPalt;
-volatile float vBaro=0;
 
 float currentRangeSweepValue=RANGESWEEP_LOW_AOA;
 RunningMedian P45Median(pressureSmoothing);
@@ -662,13 +664,6 @@ RunningAverage GzAvg(gyroSmoothing);
 RunningAverage aVertCorrAvg(accSmoothing);
 RunningAverage aLatCorrAvg(accSmoothing);
 RunningAverage aFwdCorrAvg(accSmoothing);
-RunningAverage vBaroAvg(vBaroSmoothing);
-RunningAverage earthVertGAvg(earthVertGSmoothing);
-
- 
-
-
-
 RunningAverage imuTempAvg(imuTempSmoothing);
 //RunningAverage imuTempRateAvg(imuTempRateSmoothing);
 
@@ -826,7 +821,6 @@ if (!volumeControl)
   // get initial pressure altitude
   Pstatic=GetStaticPressure();
   Palt=145366.45*(1-pow((Pstatic+pStaticBias)/1013.25,0.190284)); //Pstatic in milliBars,Palt in feet
-  previousPalt=Palt;
   // initialize pitch and roll
   readAccelGyro(true);
   smoothedPitch=calcPitch(getAccelForAxis(forwardGloadAxis),getAccelForAxis(lateralGloadAxis), getAccelForAxis(verticalGloadAxis))+pitchBias;
@@ -870,6 +864,10 @@ if (!volumeControl)
   // initialize filters
  // MadGwick attitude filter
  filter.begin(imuSampleRate,-smoothedPitch,smoothedRoll); // start Madgwick filter at 238Hz for LSM9DS1 and 208Hz for ISM330DHXC
+
+ // kalman altitude filter
+ kalman.Configure(7.243, 15.8993, 5.6296e-09, Palt * FT2M,0.00,0.00); // configure the Kalman filter (Smooth altitude and IVSI from Baro + accelerometers)
+ // optimized values: 33.9534. 25.004, 0.13843
  
  // set interrupt priorities
   

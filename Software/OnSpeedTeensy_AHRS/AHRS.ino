@@ -80,21 +80,15 @@ void processAHRS()
   float q[4];
   filter.getQuaternion(&q[0],&q[1],&q[2],&q[3]);
   // get earth referenced vertical acceleration
-  earthVertGAvg.addValue( 2.0f * (q[1]*q[3] - q[0]*q[2]) * aFwdCorr + 2.0f * (q[0]*q[1] + q[2]*q[3]) * aLatCorr + (q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]) * aVertCorr - 1.0f);
-  earthVertG=earthVertGAvg.getFastAverage();
+  earthVertG= 2.0f * (q[1]*q[3] - q[0]*q[2]) * aFwdCorr + 2.0f * (q[0]*q[1] + q[2]*q[3]) * aLatCorr + (q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]) * aVertCorr - 1.0f;
 
-  float vAcc=VSI+earthVertG*9.80665*1/208; // acceleration derived vertical speed
-  if (newSensorDataAvailable)
-       {
-        vBaroAvg.addValue((Palt-previousPalt)*0.3048/0.02); // baro rate is 50hz!
-        previousPalt=Palt;
-        vBaro=vBaroAvg.getFastAverage(); // baro derived vertical speed, smoothed                     
-        newSensorDataAvailable=false;
-       }
-  VSI=vAcc*vsiAlpha+vBaro*(1-vsiAlpha); // complementary filtered VSI in m/sec 
-  Serial.println(VSI);  
-  // calculate flight path and derived AOA                   
-  if (smoothedTAS!=0) flightPath=asin(VSI/smoothedTAS) * RAD2DEG; // TAS in m/s, radians to degrees
+  kalman.Update(Palt * FT2M , earthVertG * MPS2G, 0.02, &kalmanAlt, &kalmanVSI); // altitude in meters, acceleration in m/s^2  (.002 = 50 hz sensor rate) 
+
+  // zero VSI when airspeed is not yet alive
+  if (IAS<25) kalmanVSI=0;
+  
+// calculate flight path and derived AOA                   
+  if (smoothedTAS!=0) flightPath=asin(kalmanVSI/smoothedTAS) * RAD2DEG; // TAS in m/s, radians to degrees
       else flightPath=0;
   derivedAOA=smoothedPitch-flightPath;
     

@@ -116,7 +116,7 @@ while (SensorFile.available())
                  
                   dataMark=valueArray[10].toInt();
 
-                  VSI=valueArray[55].toFloat()/197;
+                  kalmanVSI=valueArray[55].toFloat()/196.85;
 
                   imuIndex=12;                 
                   // get IMU values from log                 
