@@ -75,24 +75,29 @@ void processAHRS()
   smoothedPitch= -filter.getPitch() * ahrsSmoothingAlpha+(1-ahrsSmoothingAlpha)*smoothedPitch;
   smoothedRoll= -filter.getRoll() * ahrsSmoothingAlpha +(1-ahrsSmoothingAlpha)*smoothedRoll;
 
-// MadgWick time is 10-11uS
-// update kalman filter
+
+// calculate VSI and flightpath
   float q[4];
   filter.getQuaternion(&q[0],&q[1],&q[2],&q[3]);
   // get earth referenced vertical acceleration
   earthVertGAvg.addValue( 2.0f * (q[1]*q[3] - q[0]*q[2]) * aFwdCorr + 2.0f * (q[0]*q[1] + q[2]*q[3]) * aLatCorr + (q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]) * aVertCorr - 1.0f);
   earthVertG=earthVertGAvg.getFastAverage();
-  
-  vBaroAvg.addValue((Palt-previousPalt)*0.3048/0.02); // baro rate is 50hz!
-  previousPalt=Palt;
-  float vBaro=vBaroAvg.getFastAverage(); // baro derived vertical speed, smoothed
-  float vAcc=VSI+earthVertG*9.80665*1/imuSampleRate; // acceleration derived vertical speed
-  VSI=vAcc*vsiAlpha+vBaro*(1-vsiAlpha); // complementary filtered VSI in m/sec
-  
-// calculate flight path and derived AOA                   
+
+  float vAcc=VSI+earthVertG*9.80665*1/208; // acceleration derived vertical speed
+  if (newSensorDataAvailable)
+       {
+        vBaroAvg.addValue((Palt-previousPalt)*0.3048/0.02); // baro rate is 50hz!
+        previousPalt=Palt;
+        vBaro=vBaroAvg.getFastAverage(); // baro derived vertical speed, smoothed                     
+        newSensorDataAvailable=false;
+       }
+  VSI=vAcc*vsiAlpha+vBaro*(1-vsiAlpha); // complementary filtered VSI in m/sec 
+  Serial.println(VSI);  
+  // calculate flight path and derived AOA                   
   if (smoothedTAS!=0) flightPath=asin(VSI/smoothedTAS) * RAD2DEG; // TAS in m/s, radians to degrees
       else flightPath=0;
-  derivedAOA=smoothedPitch-flightPath;  
+  derivedAOA=smoothedPitch-flightPath;
+    
 }
 
 float calcPitch(float aFwd,float aLat,float aVert)

@@ -230,8 +230,8 @@ const int tasSmoothing=10; //[optimized for ISM330 IMU]
 const int ahrsSmoothing=50; // ahrs smoothing, Exponential
 const int serialDisplaySmoothing=10; // smoothing serial display data (LateralG, verticalG)  10hz data.
 const int earthVertGSmoothing=201; // [optimized for ISM330 IMU]
-const int vBaroSmoothing=231; // [optimized for ISM330 IMU]
-const float vsiAlpha=0.999; //[optimized for ISM330 IMU]
+const int vBaroSmoothing=100; // [optimized for ISM330 IMU]
+const float vsiAlpha=0.99904; //[optimized for ISM330 IMU]
 const float gyroScaleCorrection=1.14; // [optimized for ISM330 IMU]
 
 intArray flapDegrees;
@@ -285,9 +285,8 @@ float pitchBias=0.0;
 float rollBias=0.0;
 
 // AHRS variables
-float earthVertGTotal=0.0;
-int earthVertGCount=0;
 volatile float earthVertG=0.0;
+volatile bool newSensorDataAvailable=false;
 
 #ifdef IMUTYPE_LSM9DS1
 float imuSampleRate=238; // 238Hz. 50hz for replay
@@ -641,6 +640,7 @@ volatile float smoothedTAS=0.0;                    // smoothed airspeed
 volatile float prevIAS=0.0;                        // previous IAS sample (used to calculate acceleartion)
 volatile float Palt=0.00;                          // pressure altitude
 volatile float previousPalt;
+volatile float vBaro=0;
 
 float currentRangeSweepValue=RANGESWEEP_LOW_AOA;
 RunningMedian P45Median(pressureSmoothing);
