@@ -101,27 +101,30 @@ if (serialWifiCmdBufferSize >=3071)
                                  memcpy(listfileFileName,serialWifiCmdBuffer+7,serialWifiCmdBufferSize-6);                                 
                                  checkWatchdog();
                                  delay(1000);
+                                 byte sendBuffer[1460];
+                                 int totalBytes=0;
                                  ListFile=Sd.open(listfileFileName, O_READ);
                                  if (ListFile) {     
                                               // read from the file until the end
-                                              int outcount=0;
+                                              bool packetFailed=false;
                                               while (ListFile.available())
                                               {      
                                                      checkWatchdog();                                                                                                                                                                                                                                                                                                               
                                                      // wait for serial packet to leave
-                                                     byte fileByte=ListFile.read();
-                                                     while(Serial4.availableForWrite()==0) {};                                                                                                                                                               
-                                                     Serial4.write(fileByte);
-                                                     //Serial4.flush();
-                                                     outcount++;                                                    
-                                                    if (outcount>=1436) // HTTP_DOWNLOAD_UNIT_SIZE (Webserver.h)
-                                                          {                                                            
-                                                          checkWatchdog();  
-                                                          outcount=0;
-                                                          filesendtimer=millis();
-                                                          filesendtimeout=false;
-                                                          // hold here until an ACK is received on serial.                                                          
-                                                          while(true)
+                                                     if (!packetFailed) totalBytes=ListFile.read(sendBuffer,1459);
+                                                     //Serial.println(totalBytes);
+                                                     byte checksum=0;                                                     
+                                                     for (int i=0;i<totalBytes;i++)
+                                                         {                                                     
+                                                         while(Serial4.availableForWrite()==0) {};                                                                                                                                                 
+                                                         Serial4.write(sendBuffer[i]);                                                                                          
+                                                         checksum+=sendBuffer[i];
+                                                         }
+                                                     Serial4.write(checksum);
+                                                     filesendtimer=millis();
+                                                     filesendtimeout=false;
+                                                     //Serial.println("waiting for checksum");
+                                                     while(true)
                                                                       {
                                                                       checkWatchdog();
                                                                       // check for timeout
@@ -131,10 +134,26 @@ if (serialWifiCmdBufferSize >=3071)
                                                                          break;  
                                                                         }
                                                                                                                                           
-                                                                      if (Serial4.available() && Serial4.read()=='.')
-                                                                        {                                                                                                                                            
-                                                                        break; // break out of ACK hold                                                                                                                                               
-                                                                        }
+                                                                      // wait for ACK
+                                                                      if (Serial4.available())
+                                                                        {                                                                                                                                                   
+                                                                          byte receivedChecksum=Serial4.read();
+                                                                          if (receivedChecksum!=checksum)
+                                                                              {
+                                                                              packetFailed=true;
+                                                                              Serial.print("bad checksum - ");
+                                                                              Serial.print(totalBytes);
+                                                                              Serial.print(" / ");
+                                                                              Serial.print(checksum,HEX);
+                                                                              Serial.print(":");
+                                                                              Serial.println(receivedChecksum,HEX);
+                                                                              Serial.println("resending...");
+                                                                              } else
+                                                                                    {
+                                                                                    packetFailed=false;
+                                                                                    }
+                                                                         break; // break out of ACK hold                                                                                                                                                                                                                       
+                                                                        }                                                                        
                                                                       
                                                                       } // while
                                                          if (filesendtimeout) 
@@ -142,7 +161,7 @@ if (serialWifiCmdBufferSize >=3071)
                                                                       Serial.println("file transfer timeout");
                                                                       break;                                                                                  
                                                                     }                                                               
-                                                          }
+                                                         // }
                                               }
                                               // close the file:                                              
                                               ListFile.close();                                              

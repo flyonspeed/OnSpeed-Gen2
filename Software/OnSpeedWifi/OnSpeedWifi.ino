@@ -27,9 +27,9 @@
 #include "javascript_regression.h"
 
 
-#define BAUDRATE_WIFI         921600
+#define BAUDRATE_WIFI         1000000
 
-String wifi_fw="3.2.3"; // wifi firmware version
+String wifi_fw="3.2.3e"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
@@ -1799,8 +1799,9 @@ char inChar;
 delay(1000);
 //Serial.flush();
 sendSerialCommand("$LIST!");
-    
-String content=""; 
+ 
+char contentBuffer[512];
+int contentBufferIndex=0;
 
 String page;
   updateHeader();
@@ -1813,30 +1814,31 @@ int fileCount=0;
   if (Serial.available()) 
       {
        inChar=Serial.read();
-       content+=inChar;       
+       contentBuffer[contentBufferIndex]=inChar;
+       contentBufferIndex++;      
        starttime=millis();
      
       if (inChar==0x0A) // end of line
           {
-           if (content.indexOf("<eof>")>=0) break;
+            if (strstr(contentBuffer, "<eof>")) break;
             // got one line
            bool isFilename=true;
            String filename="";
            String filesize="";
            String fileLine="";
-           if (content.indexOf("<filelist>")>=0)
+           if (strstr(contentBuffer, "<filelist>"))
               {
-              content="";
+              contentBufferIndex=0;
               continue; //skip content header tag
               }
-           for (int i=0;i<content.length();i++)
+           for (int i=0;i<contentBufferIndex;i++)
                 {
-                if (content[i]==':') {
+                if (contentBuffer[i]==':') {
                                     isFilename=false;
                                     continue;
                                     } else
                                           {                                        
-                                          if (isFilename) filename+=content[i]; else filesize+=content[i];
+                                          if (isFilename) filename+=contentBuffer[i]; else filesize+=contentBuffer[i];
                                           }
                 }
             if (filename.length()>0)
@@ -1856,12 +1858,12 @@ int fileCount=0;
                     page+=fileLine;
                     fileCount++; 
                     }    
-            content="";        
+           contentBufferIndex=0;       
           }
       
       }
   if ((millis()-starttime)>5000) // check for timeout
-      {      
+      {
       // SD read timeout 
       String page=pageHeader;
       page+="<br><br>Couldn't get list of files on the Teensy's SD card. TIMEOUT while communicating with the Teensy via serial. Reboot and try again"
@@ -1917,19 +1919,26 @@ bool handleFileRead(String path) {
   if (fileName.indexOf(".csv")>=0) server.send(200, "text/csv", ""); // send empty string (headers only)
       else server.send(200, "text/plain", "");
 
-
   unsigned long starttime=millis();
   unsigned long bytecount=0;
-  String sendBuffer;
-  while (bytecount<contentLength)
+  //String sendBuffer;
+  char sendBuffer[1461];
+  int sendBufferIndex=0;
+  byte checksum;
+  int fullPacketCount=contentLength/1459;
+  int endPacketSize=contentLength-fullPacketCount*1459;
+  int packetCount=0;
+  
+  while (packetCount<fullPacketCount+1) // full packets + 1 partial packet
   {
   if (Serial.available()>0)
       {
        char inChar=Serial.read();
-       if (inChar==0xFF) continue;
-       sendBuffer+=inChar;       
-       bytecount++;
-       if (bytecount==contentLength && sendBuffer.indexOf("<404>")>=0)
+       if (inChar==0xFF && sendBufferIndex<1459) continue; // filter out FF junk (esp32 issue in this version)
+       sendBuffer[sendBufferIndex]=inChar;
+       sendBufferIndex++;
+       
+       if (sendBufferIndex==5 && strstr(sendBuffer, "<404>"))
                   {                  
                   // file does not exist
                   server.send(404, "text/plain", "File Not Found");                  
@@ -1939,25 +1948,36 @@ bool handleFileRead(String path) {
                   return true;
                   }
             
-       if (bytecount % 1436==0) // HTTP_DOWNLOAD_UNIT_SIZE (Webserver.h)
-        {        
-        Serial.print(".");
+       if (sendBufferIndex==1460 || (sendBufferIndex==endPacketSize+1 && packetCount==fullPacketCount))
+        {
+        checksum=0;
+        for (int i=0;i<sendBufferIndex-1;i++)
+           {                                                     
+           checksum+=sendBuffer[i];
+           }
+        Serial.write(checksum);
         Serial.flush(true); // flush TX only
-        server.sendContent(sendBuffer);
-        sendBuffer="";
+
+        if (checksum==sendBuffer[sendBufferIndex-1])
+              {
+               packetCount++; // got one packet, correct checksum 
+               server.sendContent(sendBuffer,sendBufferIndex-1);
+              }
+        sendBufferIndex=0;
         }
        starttime=millis();
       }
+     
   if ((millis()-starttime)>5000)
       {      
       // SD read timeout       
       delay(200);
-      Serial.println("Timeout"); 
+      Serial.println("Receive Timeout"); 
       return false;
       }  
   }
   // lower Wifi power after file transfer completed
-  if (sendBuffer.length()>0) server.sendContent(sendBuffer); // send the remaining characters in buffer
+  //if (sendBufferIndex>0) server.sendContent(sendBuffer,sendBufferIndex-1); // send the remaining characters in buffer
   return true;
 }
 

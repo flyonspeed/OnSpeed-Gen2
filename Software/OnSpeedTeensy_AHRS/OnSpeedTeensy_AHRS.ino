@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.2.3d" // 7/14/2022 tuned kalmanVSI filter
+#define VERSION "3.2.3e" //7/15/2021 Covid-affected update, proceed with caution. Added checksums to data download. Also change comm speeds to 1,000,000bps
+//"3.2.3d" // 7/14/2022 tuned kalmanVSI filter
 //"3.2.3c" // 7/12/2022 another switch glitch fix
 //"3.2.3b" //mgl updates. VSI.
 //"3.2.3a" //interrupt based push button, updated OneButton library
@@ -344,7 +345,7 @@ volatile double coeffP; // coefficient of pressure
   #define BAUDRATE_CONSOLE      921600
   #define BAUDRATE_BOOM         115200 
   #define BAUDRATE_EFIS         115200
-  #define BAUDRATE_WIFI         921600
+  #define BAUDRATE_WIFI         1000000 // 921600 is glicthy on this port
 
 // serial data timeouts
   #define EFIS_DATA_TIMEOUT     1000  // milliseconds
