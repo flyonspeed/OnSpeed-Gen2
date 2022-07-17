@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.2.3e" //7/15/2021 Covid-affected update, proceed with caution. Added checksums to data download. Also change comm speeds to 1,000,000bps
+#define VERSION "3.2.3f" // 7/17/2022 Fixed VSI unit conversion issue and Roll calibration direction.
+//"3.2.3e" //7/15/2021 Covid-affected update, proceed with caution. Added checksums to data download. Also change comm speeds to 1,000,000bps
 //"3.2.3d" // 7/14/2022 tuned kalmanVSI filter
 //"3.2.3c" // 7/12/2022 another switch glitch fix
 //"3.2.3b" //mgl updates. VSI.

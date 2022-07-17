@@ -82,7 +82,7 @@ void processAHRS()
   // get earth referenced vertical acceleration
   earthVertG= 2.0f * (q[1]*q[3] - q[0]*q[2]) * aFwdCorr + 2.0f * (q[0]*q[1] + q[2]*q[3]) * aLatCorr + (q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]) * aVertCorr - 1.0f;
 
-  kalman.Update(Palt * FT2M , earthVertG * MPS2G, float(1/imuSampleRate), &kalmanAlt, &kalmanVSI); // altitude in meters, acceleration in m/s^2
+  kalman.Update(Palt * FT2M , earthVertG * G2MPS, float(1/imuSampleRate), &kalmanAlt, &kalmanVSI); // altitude in meters, acceleration in m/s^2
 
   // zero VSI when airspeed is not yet alive
   if (IAS<25) kalmanVSI=0;

@@ -129,7 +129,7 @@ if (readEfisData)
                              vnRollSigma=array2float(vnBuffer,117);
                              vnPitchSigma=array2float(vnBuffer,121);
                              efisTimestamp=millis();
-                             //Serial.print(efisTimestamp);                                                                                                             
+                             //Serial.println(efisTimestamp);                                                                                                             
                              #ifdef EFISDATADEBUG                             
                              Serial.printf("\nvnAngularRateRoll: %.2f,vnAngularRatePitch: %.2f,vnAngularRateYaw: %.2f,vnVelNedNorth: %.2f,vnVelNedEast: %.2f,vnVelNedDown: %.2f,vnAccelFwd: %.2f,vnAccelLat: %.2f,vnAccelVert: %.2f,vnYaw: %.2f,vnPitch: %.2f,vnRoll: %.2f,vnLinAccFwd: %.2f,vnLinAccLat: %.2f,vnLinAccVert: %.2f,vnYawSigma: %.2f,vnRollSigma: %.2f,vnPitchSigma: %.2f,vnGnssVelNedNorth: %.2f,vnGnssVelNedEast: %.2f,vnGnssVelNedDown: %.2f,vnGnssLat: %.6f,vnGnssLon: %.6f,vnGPSFix: %i,TimeUTC: %s\n",vnAngularRateRoll,vnAngularRatePitch,vnAngularRateYaw,vnVelNedNorth,vnVelNedEast,vnVelNedDown,vnAccelFwd,vnAccelLat,vnAccelVert,vnYaw,vnPitch,vnRoll,vnLinAccFwd,vnLinAccLat,vnLinAccVert,vnYawSigma,vnRollSigma,vnPitchSigma,vnGnssVelNedNorth,vnGnssVelNedEast,vnGnssVelNedDown,vnGnssLat,vnGnssLon,vnGPSFix,vnTimeUTC.c_str());                             
                              #endif
@@ -166,6 +166,8 @@ if (readEfisData)
                     // HeadingMag, PitchAngle, BankAngle, YawAngle, TurnRate, Slip, GForce, LRForce, FRForce, BankRate, PitchRate, YawRate, SensorFlags, Padding1, Padding2, Padding3, Checksum 
                     // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
                     // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
+                    Serial.print("attitude rate: ");
+                    Serial.println(vnBuffer[3]);
                     packetCount = Serial3.readBytes(vnBuffer, 32);  // now read # attitude information 32 bytes
                     if(packetCount != 32) { // if didn't read in all bytes then skip and wait for next.
                       #ifdef EFISDATADEBUG
@@ -192,6 +194,8 @@ if (readEfisData)
                     // 0          4          8      10     12     14    16     18         20     22        23           24     25     26     27     28     29    30      31     32  (postion)
                     // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
                     // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
+                    Serial.print("primary rate: ");
+                    Serial.println(vnBuffer[3]);
                     packetCount = Serial3.readBytes(vnBuffer, 36);  // flight data. 36 bytes
                     if(packetCount != 36) {
                       #ifdef EFISDATADEBUG

@@ -29,7 +29,7 @@
 
 #define BAUDRATE_WIFI         1000000
 
-String wifi_fw="3.2.3e"; // wifi firmware version
+String wifi_fw="3.2.3f"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
@@ -266,7 +266,7 @@ void handleSensorConfig()
      currentConfig+=" measured Pitch: "+ String(aircraftPitch)+"<br>";
      currentConfig+=" corrected Pitch: "+ String(aircraftPitch+pitchBias)+"<br>";
      currentConfig+=" measured Roll: "+ String(aircraftRoll)+"<br>";
-     currentConfig+=" corrected Roll: "+ String(aircraftRoll-rollBias);
+     currentConfig+=" corrected Roll: "+ String(aircraftRoll+rollBias);
     
     page+="<br><b>Current sensor calibration:</b><br><br>"+currentConfig+"<br>\
     <p style=\"color:black\">This procedure will calibrate the system\'s accelerometers, gyros and pressure sensors.<br><br>\
@@ -285,7 +285,7 @@ void handleSensorConfig()
     <input class=\"inputField\" type=\"text\" name=\"aircraftPitch\" value=\""+ String(aircraftPitch+pitchBias)+"\">\
     <br><br>\
     <label>Aircraft Roll (degrees)</label>\
-    <input class=\"inputField\" type=\"text\" name=\"aircraftRoll\" value=\""+ String(aircraftRoll-rollBias)+"\">\
+    <input class=\"inputField\" type=\"text\" name=\"aircraftRoll\" value=\""+ String(aircraftRoll+rollBias)+"\">\
     <br><br>\
     <label>Pressure Altitude (feet)</label>\
     <input class=\"inputField\" type=\"text\" name=\"aircraftPalt\" value=\""+ String(aircraftPalt)+"\">\
