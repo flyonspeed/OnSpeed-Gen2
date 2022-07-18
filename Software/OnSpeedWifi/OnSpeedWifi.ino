@@ -29,7 +29,7 @@
 
 #define BAUDRATE_WIFI         1000000
 
-String wifi_fw="3.2.3f"; // wifi firmware version
+String wifi_fw="3.2.3g"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
@@ -538,7 +538,10 @@ void handleCalWizard()
         </div>";
    } else
    if  (wizardStep=="decel")
-   {       
+   {
+   unsigned long serialWaitTime=millis();
+   while (serialBusy && millis()-serialWaitTime<3000) {}; // wait for up to 3 seconds to finish sending serial data
+   delay(100);
     String configString=getConfigString(); // load current config
               if (configString.indexOf("</CONFIG>")>0)
                   {
@@ -559,7 +562,7 @@ void handleCalWizard()
           Get ready to fly a 1kt/sec deceleration.<br><br>\
           <b>Instructions:</b>\
           <br><br>\
-          1. Set you flaps now and do not change them until after you saved the calibartion.<br\
+          1. Set your flaps now and do not change them until after you saved the calibartion.<br\
           2. Fly the entire run at a steady 1kt/sec deceleration (OnSpeed provides feedback).<br>\
           3. Keep the ball in the middle and wings level at all times<br>\
           4. Prioritize pitch smoothness over deceleration rate.<br>\

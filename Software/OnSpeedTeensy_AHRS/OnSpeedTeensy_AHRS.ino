@@ -65,10 +65,9 @@
 //"v2.1.19"   // last modified 12/27/2019 by Lenny (added 3D audio. Define an audio curve in aircraft config file)
 
 //interrupt priorities:
-//Tones 16
+//Tones 96
 //IMU 128
 //Sensors 128
-//SerialData 128
 
                          
 #define DEFAULT_CONFIG  default_config
