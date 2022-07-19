@@ -139,108 +139,156 @@ if (readEfisData)
                  } // while
                  
       } else if (efisID==6) { // MGL data, binary format
-         while (Serial3.available())  {
-              // receive one byte                                 
-              byte vn_inByte;
-              if(efisPacketInProgress == false) vn_inByte = Serial3.read();
-              lastReceivedEfisTime=millis();
-              packetCount++;
-              charsreceived++;
-              if (vn_inByte == 5 && efisPacketInProgress == false) {
-                #ifdef EFISDATADEBUG
-                Serial.printf(".");
-                #endif
-                vn_inByte=Serial3.read();
-                if (vn_inByte == 2 ) {
-                  efisPacketInProgress=true;
-                  vnBufferIndex=0; // reset buffer index when sync byte is received
-                  continue;
-                }
-              } else if(efisPacketInProgress==true) {
-                  packetCount = Serial3.readBytes(vnBuffer, 6);  // now read the header (6 bytes)
-                  if(packetCount != 6) {efisPacketInProgress = false; continue;} // if didn't read in all bytes then skip and wait for next.
-
-                  if(vnBuffer[2] == 3) { // # attitude flight data.
-                    // 1           2           3          4         5         6     7       8        9        10        11         12       13           14        15        16        17 (number)
-                    // 0           2           4          6         8         10    12      14       16       18        20         22       24           25        26        27        28 (postion)
-                    // HeadingMag, PitchAngle, BankAngle, YawAngle, TurnRate, Slip, GForce, LRForce, FRForce, BankRate, PitchRate, YawRate, SensorFlags, Padding1, Padding2, Padding3, Checksum 
-                    // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
-                    // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
-                    Serial.print("attitude rate: ");
-                    Serial.println(vnBuffer[3]);
-                    packetCount = Serial3.readBytes(vnBuffer, 32);  // now read # attitude information 32 bytes
-                    if(packetCount != 32) { // if didn't read in all bytes then skip and wait for next.
-                      #ifdef EFISDATADEBUG
-                      Serial.printf("MGL Attitude> BAD message length\n");
-                      #endif
-                      efisPacketInProgress = false; 
-                      continue;
-                      }  
-                    
-                    efisHeading = int(convertUnSignedIntFrom2Bytes(vnBuffer,0) * 0.1); // heading
-                    efisPitch = convertSignedIntFrom2Bytes(vnBuffer,2) * 0.1;
-                    efisRoll = convertSignedIntFrom2Bytes(vnBuffer,4) * 0.1;
-                    efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer,12) * 0.01;
-                    efisLateralG = convertSignedIntFrom2Bytes(vnBuffer,14) * 0.01;
-
-                    #ifdef EFISDATADEBUG
-                    Serial.printf("MGL Attitude> Head: %i \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
-                    #endif
-
-                    efisPacketInProgress=false; // done.. ready to read next message.
-                  }
-                  else if(vnBuffer[2] == 1) {  // # primary flight data.
-                    // 1          2          3      4      5      6     7      8          9      10        11           12     13     14     15     16     17    18      19     20  (number)
-                    // 0          4          8      10     12     14    16     18         20     22        23           24     25     26     27     28     29    30      31     32  (postion)
-                    // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
-                    // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
-                    Serial.print("primary rate: ");
-                    Serial.println(vnBuffer[3]);
-                    packetCount = Serial3.readBytes(vnBuffer, 36);  // flight data. 36 bytes
-                    if(packetCount != 36) {
-                      #ifdef EFISDATADEBUG
-                      Serial.printf("MGL primary> BAD message length\n");
-                      #endif
-                      efisPacketInProgress = false; 
-                      continue;
-                    } // if didn't read in all bytes then skip and wait for next.
-                    
-                    efisPalt = convertUnSignedIntFrom4Bytes(vnBuffer,0) ; 
-                    //theEFISData.bAlt = convertUnSignedIntFrom4Bytes(vnBuffer,4);
-                    efisIAS = convertUnSignedIntFrom2Bytes(vnBuffer,8) * 0.05399565; // airspeed in 10th of Km/h.  * 0.05399565 to knots. * 0.6213712 to mph
-                    efisTAS = convertUnSignedIntFrom2Bytes(vnBuffer,10) * 0.05399565; // convert to knots
-                    efisPercentLift = convertSignedIntFrom2Bytes(vnBuffer,12) ; // aoa
-                    efisVSI = convertSignedIntFrom2Bytes(vnBuffer,14) ; // vsi in FPM.
-                    //float baro = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.0029529983071445;  //convert from mbar to inches of mercury.
-                    //theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
-                    efisOAT = convertUnSignedIntFrom2Bytes(vnBuffer,20);  // c
-                    //sprintf(efisTime,"%i:%i:%i",byte(vnBuffer[24]),byte(vnBuffer[25]),byte(vnBuffer[26]));  // pull the time out of message.
-                    efisTime = String(vnBuffer[24])+":"+String(vnBuffer[25])+":"+String(vnBuffer[26]);  // get efis time in string.
-                    efisTimestamp=millis();
-
-                    #ifdef EFISDATADEBUG
-                    Serial.printf("MGL primary> time:%i:%i:%i Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%.2f\n",vnBuffer[24],vnBuffer[25],vnBuffer[26],efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
-                    #endif
-                    
-                    efisPacketInProgress=false;  // done.. ready to read next message.
-                    #ifdef EFISDATADEBUG
-                      Serial.printf("MGL iEfIS: efisIAS %.2f, efisPitch %.2f, efisRoll %.2f, efisLateralG %.2f, efisVerticalG %.2f, efisPercentLift %i, efisPalt %i, efisVSI %i, efisTAS %.2f, efisOAT %.2f, efisHeading %i ,efisTime %s\n", efisIAS, efisPitch, efisRoll, efisLateralG, efisVerticalG, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisHeading, efisTime.c_str());                        
-                                                                                                        
-                    #endif
-                  } else {
-                    // else unkown data packet.  so ignore.
-                    efisPacketInProgress=false;
-                    #ifdef EFISDATADEBUG
-                    Serial.printf("MGL...\n");
-                    #endif
-                  }                  
-                  
-              } else {
-                // do nothing...
-                efisPacketInProgress=false;
-              }
-
-         }
+         while (Serial3.available())  
+                    {
+                    // receive one byte                                 
+                    byte    vn_inByte;
+            
+                    // Data Read
+                    // ---------
+            
+                    vn_inByte = Serial3.read();
+                    lastReceivedEfisTime=millis();
+            
+                    // Sync byte 1
+                    if (vnBufferIndex == 0)
+                        {
+                        if (vn_inByte == 0x05)
+                            {
+                            vnBuffer[0] = vn_inByte;
+                            vnBufferIndex++;
+                            }
+                        }
+            
+                    // Sync byte 2
+                    else if (vnBufferIndex == 1)
+                        {
+                        if (vn_inByte == 0x02)
+                            {
+                            vnBuffer[1] = vn_inByte;
+                            vnBufferIndex++;
+                            }
+                        else
+                            {
+                            vnBufferIndex = 0;
+                            }
+                        }
+            
+                    // Message length bytes
+                    else if ((vnBufferIndex == 2) || (vnBufferIndex == 3))
+                        {
+                        vnBuffer[vnBufferIndex] = vn_inByte;
+                        vnBufferIndex++;
+                        if (vnBufferIndex == 4)
+                            {
+                            // Check for corrupted length data
+                            if ((vnBuffer[2] ^ vnBuffer[3]) != 0xFF)
+                                vnBufferIndex = 0;
+                            }
+                        } // end if length bytes
+            
+                    // Read in the rest of the message up to the message length or up to 
+                    // our max buffer size.
+                    else if ((vnBufferIndex > 3               ) && 
+                             (vnBufferIndex < (vnBuffer[2]+20)) &&
+                             (vnBufferIndex < sizeof(vnBuffer)))
+                        {            
+                        vnBuffer[vnBufferIndex] = vn_inByte;
+                        vnBufferIndex++;
+                        }
+            
+                    // Data Decode
+                    // -----------
+            
+                    // If we have a full buffer of message data then decode it
+                    if (vnBufferIndex >= (vnBuffer[2]+20))
+                        {
+                        switch (vnBuffer[4])
+                            {
+                            case 1 : // Primary flight data
+            
+            // 1          2          3      4      5      6     7      8          9      10        11           12     13     14     15     16     17    18      19     20  (number)
+            // 8          12         16     18     20     22    24     26         28     30        31           32     33     34     35     36     37    38      39     40  (postion)
+            // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
+            // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
+            
+                                if (vnBufferIndex != 44)
+                                    {
+                                    #ifdef EFISDATADEBUG
+                                    Serial.printf("MGL primary - BAD message length\n");
+                                    #endif
+                                    break;
+                                    }
+                                
+                                efisPalt         = convertUnSignedIntFrom4Bytes(vnBuffer,8);
+                            // theEFISData.bAlt  = convertUnSignedIntFrom4Bytes(vnBuffer,12);
+                                efisIAS          = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.05399565f; // airspeed in 10th of Km/h.  * 0.05399565 to knots. * 0.6213712 to mph
+                                efisTAS          = convertUnSignedIntFrom2Bytes(vnBuffer,18) * 0.05399565f; // convert to knots
+                                efisPercentLift  = convertSignedIntFrom2Bytes(vnBuffer,20) ; // aoa
+                                efisVSI          = convertSignedIntFrom2Bytes(vnBuffer,22) ; // vsi in FPM.
+                       // float baro             = convertUnSignedIntFrom2Bytes(vnBuffer,24) * 0.0029529983071445;  //convert from mbar to inches of mercury.
+                              // theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
+                                efisOAT          = float(convertUnSignedIntFrom2Bytes(vnBuffer,28));  // c
+                                // sprintf(efisTime,"%i:%i:%i",byte(vnBuffer[32]),byte(vnBuffer[33]),byte(vnBuffer[34]));  // pull the time out of message.
+                                #ifdef _WIN32
+                                efisTime = std::to_string(vnBuffer[32])+":"+std::to_string(vnBuffer[33])+":"+std::to_string(vnBuffer[34]);  // get efis time in string.
+                                #else
+                                efisTime = String(vnBuffer[32])+":"+String(vnBuffer[33])+":"+String(vnBuffer[34]);  // get efis time in string.
+                                #endif
+            
+                                efisTimestamp = millis();
+            
+                                #ifdef _WIN32
+                                printf("MGL primary  time:%i:%i:%i Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%.2f\n",vnBuffer[32],vnBuffer[33],vnBuffer[34],efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
+                                //printf("MGL iEfIS: efisIAS %.2f,  efisPercentLift %i, efisPalt %i, efisVSI %i, efisTAS %.2f, efisOAT %.2f, efisTime %s\n", efisIAS, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisTime.c_str());                                                                                    
+                                #endif
+            
+                                #ifdef EFISDATADEBUG
+                                Serial.printf("MGL primary  time:%i:%i:%i Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%.2f\n",vnBuffer[32],vnBuffer[33],vnBuffer[34],efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
+                                Serial.printf("MGL iEfIS: efisIAS %.2f, efisPitch %.2f, efisRoll %.2f, efisLateralG %.2f, efisVerticalG %.2f, efisPercentLift %i, efisPalt %i, efisVSI %i, efisTAS %.2f, efisOAT %.2f, efisHeading %i ,efisTime %s\n", efisIAS, efisPitch, efisRoll, efisLateralG, efisVerticalG, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisHeading, efisTime.c_str());                                                                                    
+                                #endif
+                                break;
+            
+                            case 3 : // Attitude flight data
+            
+            // 1           2           3          4         5         6     7       8        9        10        11         12       13           14        15        16        17 (number)
+            // 8           10          12         14        16        18    20      22       24       26        28         30       32           33        34        35        36 (postion)
+            // HeadingMag, PitchAngle, BankAngle, YawAngle, TurnRate, Slip, GForce, LRForce, FRForce, BankRate, PitchRate, YawRate, SensorFlags, Padding1, Padding2, Padding3, Checksum 
+            // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
+            // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
+            
+                                if (vnBufferIndex != 40)
+                                    {
+                                    #ifdef EFISDATADEBUG
+                                    Serial.printf("MGL Attitude> BAD message length\n");
+                                    #endif
+                                    break;
+                                    }
+                                
+                                efisHeading   = int(convertUnSignedIntFrom2Bytes(vnBuffer,8) * 0.1);
+                                efisPitch     = convertSignedIntFrom2Bytes(vnBuffer, 10) * 0.1f;
+                                efisRoll      = convertSignedIntFrom2Bytes(vnBuffer, 12) * 0.1f;
+                                efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer, 20) * 0.01f;
+                                efisLateralG  = convertSignedIntFrom2Bytes(vnBuffer, 22) * 0.01f;
+            
+                                #ifdef _WIN32
+                                printf("MGL Attitude  Head: %i \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
+                                #endif
+            
+                                #ifdef EFISDATADEBUG
+                                Serial.printf("MGL Attitude  Head: %i \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
+                                #endif
+                                break;
+            
+                            default :
+                                break;
+                            } // end switch on message type
+            
+                        // Get buffer ready for next message
+                        vnBufferIndex = 0;
+                        } // end if full message
+            
+                    } // end while serial bytes available
 
       
       }  else

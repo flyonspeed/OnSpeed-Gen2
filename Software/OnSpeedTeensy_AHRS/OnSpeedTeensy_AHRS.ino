@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.2.3f" // 7/17/2022 Fixed VSI unit conversion issue and Roll calibration direction.
+#define VERSION "3.2.3.g" //Bob's MGL parser fix.
+//"3.2.3f" // 7/17/2022 Fixed VSI unit conversion issue and Roll calibration direction.
 //"3.2.3e" //7/15/2021 Covid-affected update, proceed with caution. Added checksums to data download. Also change comm speeds to 1,000,000bps
 //"3.2.3d" // 7/14/2022 tuned kalmanVSI filter
 //"3.2.3c" // 7/12/2022 another switch glitch fix
@@ -578,11 +579,11 @@ volatile float vnGnssVelNedNorth=0.00;
 volatile float vnGnssVelNedEast=0.00;
 volatile float vnGnssVelNedDown=0.00;
 volatile byte vnGPSFix=0;
-double vnGnssLat=0.00L; // 8 byte double
-double vnGnssLon=0.00L;
+volatile double vnGnssLat=0.00L; // 8 byte double
+volatile double vnGnssLon=0.00L;
 String vnTimeUTC="";
 byte vnBuffer[127];
-int vnBufferIndex=0;
+byte vnBufferIndex=0;
 
 // pressure variables
 volatile int Pfwd;
