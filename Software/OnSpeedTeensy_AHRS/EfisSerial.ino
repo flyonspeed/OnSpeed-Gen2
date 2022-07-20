@@ -207,11 +207,11 @@ if (readEfisData)
                             {
                             case 1 : // Primary flight data
             
-            // 1          2          3      4      5      6     7      8          9      10        11           12     13     14     15     16     17    18      19     20  (number)
-            // 8          12         16     18     20     22    24     26         28     30        31           32     33     34     35     36     37    38      39     40  (postion)
-            // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
-            // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
-            
+                                // 1          2          3      4      5      6     7      8          9      10        11           12     13     14     15     16     17    18      19     20  (number)
+                                // 8          12         16     18     20     22    24     26         28     30        31           32     33     34     35     36     37    38      39     40  (postion)
+                                // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
+                                // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
+                                
                                 if (vnBufferIndex != 44)
                                     {
                                     #ifdef EFISDATADEBUG
@@ -221,13 +221,13 @@ if (readEfisData)
                                     }
                                 
                                 efisPalt         = convertUnSignedIntFrom4Bytes(vnBuffer,8);
-                            // theEFISData.bAlt  = convertUnSignedIntFrom4Bytes(vnBuffer,12);
+                                // theEFISData.bAlt  = convertUnSignedIntFrom4Bytes(vnBuffer,12);
                                 efisIAS          = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.05399565f; // airspeed in 10th of Km/h.  * 0.05399565 to knots. * 0.6213712 to mph
                                 efisTAS          = convertUnSignedIntFrom2Bytes(vnBuffer,18) * 0.05399565f; // convert to knots
                                 efisPercentLift  = convertSignedIntFrom2Bytes(vnBuffer,20) ; // aoa
                                 efisVSI          = convertSignedIntFrom2Bytes(vnBuffer,22) ; // vsi in FPM.
-                       // float baro             = convertUnSignedIntFrom2Bytes(vnBuffer,24) * 0.0029529983071445;  //convert from mbar to inches of mercury.
-                              // theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
+                                // float baro             = convertUnSignedIntFrom2Bytes(vnBuffer,24) * 0.0029529983071445;  //convert from mbar to inches of mercury.
+                                // theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
                                 efisOAT          = float(convertUnSignedIntFrom2Bytes(vnBuffer,28));  // c
                                 // sprintf(efisTime,"%i:%i:%i",byte(vnBuffer[32]),byte(vnBuffer[33]),byte(vnBuffer[34]));  // pull the time out of message.
                                 #ifdef _WIN32
@@ -251,12 +251,12 @@ if (readEfisData)
             
                             case 3 : // Attitude flight data
             
-            // 1           2           3          4         5         6     7       8        9        10        11         12       13           14        15        16        17 (number)
-            // 8           10          12         14        16        18    20      22       24       26        28         30       32           33        34        35        36 (postion)
-            // HeadingMag, PitchAngle, BankAngle, YawAngle, TurnRate, Slip, GForce, LRForce, FRForce, BankRate, PitchRate, YawRate, SensorFlags, Padding1, Padding2, Padding3, Checksum 
-            // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
-            // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
-            
+                                // 1           2           3          4         5         6     7       8        9        10        11         12       13           14        15        16        17 (number)
+                                // 8           10          12         14        16        18    20      22       24       26        28         30       32           33        34        35        36 (postion)
+                                // HeadingMag, PitchAngle, BankAngle, YawAngle, TurnRate, Slip, GForce, LRForce, FRForce, BankRate, PitchRate, YawRate, SensorFlags, Padding1, Padding2, Padding3, Checksum 
+                                // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
+                                // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
+                                
                                 if (vnBufferIndex != 40)
                                     {
                                     #ifdef EFISDATADEBUG
@@ -279,8 +279,58 @@ if (readEfisData)
                                 Serial.printf("MGL Attitude  Head: %i \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
                                 #endif
                                 break;
+
+                              case 10 : // MGL engine data
+                                //  H = Word (16 bit unsigned integer),  h=small (16 bit signed integer), B = byte, i = long (32 bit signed integer)
+                                //  1            2           3           4            5    6      7             8              9            10           11        12         13       14          15      16        17        18       19            20             21         22   (number)
+                                //  8            9           10          11           12   14     16            18             20           22           24        26         28       30          32      34        36        38       40            42             44         46   (postion)
+                                //  B            B           B           B            H    H      H             H              H            h            h         h          h        h           h       h         H         H        H             H              h          H
+                                //EngineNumber, EngineType, NumberOfEGT, NumberOfCHT, RPM, Pulse, OilPressure1, OilPressure2, FuelPressure, CoolantTemp, OilTemp1, OilTemp2, AuxTemp1, AuxTemp2, AuxTemp3, AuxTemp4, FuelFlow, AuxFuel, ManiPressure, BoostPressure, InletTemp, AmbientTemp
+                                if(vnBufferIndex != 48) { 
+                                    #ifdef EFISDATADEBUG
+                                    Serial.printf("MGL Engine> BAD message length\n");
+                                    #endif
+                                    break;
+                                } 
+
+                                //float efisFuelFlow=0.00;
+                                efisFuelFlow = convertUnSignedIntFrom2Bytes(vnBuffer,36) * 0.002642; // In 10th liters/hour convert to Gallons/hr
+                                //float efisMAP=0.00;
+                                efisMAP = convertUnSignedIntFrom2Bytes(vnBuffer,40) * 0.0029529983071445 ;  // In 10th of a millibar to inches of mercury 
+                                // int efisRPM=0;
+                                efisRPM = convertUnSignedIntFrom2Bytes(vnBuffer,12);
+                                // int efisPercentPower=0;
+
+                                #ifdef EFISDATADEBUG
+                                Serial.printf("MGL Engine: efisFuelFlow %.2f, efisMAP %.2f, efisRPM %i, efisPercentPower %i\n", efisFuelFlow, efisMAP, efisRPM, efisPercentPower);                                     
+                                #endif
+                                break;
+
+                              case 11 : // MGL fuel data
+
+                                int numberOfTanks = convertUnSignedIntFrom4Bytes(vnBuffer,8);
+                                // Each tank is in the following format. (8 bytes long)
+                                // 1           2       3         4     (number)
+                                // 0           4       8         10    (postion)
+                                // Level,      Type,   TankOn,   TankSensors
+                                // int(4byte)  Byte    Byte      small (16 bit signed)
+
+                                //float efisFuelRemaining=0.00;
+                                efisFuelRemaining = 0.0;
+                                for (int i = 0; i < numberOfTanks; ++i)  // cycle through all the tanks.
+                                {
+                                  efisFuelRemaining += convertUnSignedIntFrom4Bytes(vnBuffer,12 + (i*8) ) * 0.002642; // get tank (convert from liters to gals) and add to total fuel amount.
+                                }
+
+                                #ifdef EFISDATADEBUG
+                                Serial.printf("MGL Fuel: tanks:%i efisFuelRemaining %.2f\n", numberOfTanks, efisFuelRemaining);                                     
+                                #endif
+                                break;
             
                             default :
+                                #ifdef EFISDATADEBUG
+                                Serial.printf("MGL ignoring message type: %d\n",vnBuffer[4]);
+                                #endif
                                 break;
                             } // end switch on message type
             
