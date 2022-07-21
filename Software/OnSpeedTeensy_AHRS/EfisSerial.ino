@@ -310,28 +310,30 @@ if (readEfisData)
                               case 11 : // MGL fuel data
 
                                 numberOfTanks = convertUnSignedIntFrom4Bytes(vnBuffer,8);
-                                // Each tank is in the following format. (8 bytes long)
-                                // 1           2       3         4     (number)
-                                // 0           4       8         10    (postion)
-                                // Level,      Type,   TankOn,   TankSensors
-                                // int(4byte)  Byte    Byte      small (16 bit signed)
+                                // Each tank is in the following format. (12 bytes long)
+                                // 1           2       3         4              5(number)
+                                // 0           4       5         6              8(postion)
+                                // Level,      Type,   TankOn,   TankSensors,   CRC
+                                // int(4byte)  Byte    Byte      small(2b)      4byte
+                                // tank types: 0=physical tank, 2=virtual tank, 3=virtual tank
 
                                 //float efisFuelRemaining=0.00;
                                 efisFuelRemaining = 0.0;
                                 for (int i = 0; i < numberOfTanks; ++i)  // cycle through all the tanks.
                                 {
                                   #ifdef EFISDATADEBUG
-                                  Serial.printf("MGL Fuel: tank:%i remaining %.2f\n", i, convertUnSignedIntFrom4Bytes(vnBuffer,12 + (i*8) ) * 0.002642);                                     
+                                  Serial.printf("MGL Fuel: tank:%i type:%d remaining %.2f\n", i, vnBuffer[12+((i*12)+4)], convertUnSignedIntFrom4Bytes(vnBuffer,12 + (i*12) ) * 0.002642);                                     
                                   #endif
-                                //  efisFuelRemaining += convertUnSignedIntFrom4Bytes(vnBuffer,12 + (i*8) ) * 0.002642; // get tank (convert from liters to gals) and add to total fuel amount.
+                                  if(vnBuffer[12+((i*12)+4)]== 0)  // only add it if its a physical tank.
+                                    efisFuelRemaining += convertUnSignedIntFrom4Bytes(vnBuffer,12 + (i*12) ) * 0.002642; // get tank (convert from liters to gals) and add to total fuel amount.
                                 }
-                                // only use the 1st 2 tanks of fuel
-                                if(numberOfTanks >= 2) {
-                                  //efisFuelRemaining = (convertUnSignedIntFrom4Bytes(vnBuffer,12) * 0.002642) + (convertUnSignedIntFrom4Bytes(vnBuffer,20) * 0.002642);
+                                // only use the tanks 3 and 4 to get remaining fuel.
+                                if(numberOfTanks >= 4) {
+                                  //efisFuelRemaining = (convertUnSignedIntFrom4Bytes(vnBuffer,12+16) * 0.002642) + (convertUnSignedIntFrom4Bytes(vnBuffer,12+24) * 0.002642);
                                 }
 
                                 #ifdef EFISDATADEBUG
-                                Serial.printf("MGL Fuel: tanks:%i efisFuelRemaining %.2f\n", numberOfTanks, efisFuelRemaining);                                     
+                                Serial.printf("MGL Fuel: tanks:%i efisFuelRemaining %.2f msg_size:%i\n", numberOfTanks, efisFuelRemaining,vnBufferIndex);                                     
                                 #endif
                                 break;
             
