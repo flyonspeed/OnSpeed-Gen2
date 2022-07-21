@@ -203,6 +203,7 @@ if (readEfisData)
                     // If we have a full buffer of message data then decode it
                     if (vnBufferIndex >= (vnBuffer[2]+20))
                         {
+                        int numberOfTanks = 0;
                         switch (vnBuffer[4])
                             {
                             case 1 : // Primary flight data
@@ -286,9 +287,9 @@ if (readEfisData)
                                 //  8            9           10          11           12   14     16            18             20           22           24        26         28       30          32      34        36        38       40            42             44         46   (postion)
                                 //  B            B           B           B            H    H      H             H              H            h            h         h          h        h           h       h         H         H        H             H              h          H
                                 //EngineNumber, EngineType, NumberOfEGT, NumberOfCHT, RPM, Pulse, OilPressure1, OilPressure2, FuelPressure, CoolantTemp, OilTemp1, OilTemp2, AuxTemp1, AuxTemp2, AuxTemp3, AuxTemp4, FuelFlow, AuxFuel, ManiPressure, BoostPressure, InletTemp, AmbientTemp
-                                if(vnBufferIndex != 48) { 
+                                if(vnBufferIndex != 68) { 
                                     #ifdef EFISDATADEBUG
-                                    Serial.printf("MGL Engine> BAD message length\n");
+                                    Serial.printf("MGL Engine> BAD message length. len %d\n",vnBufferIndex);
                                     #endif
                                     break;
                                 } 
@@ -308,7 +309,7 @@ if (readEfisData)
 
                               case 11 : // MGL fuel data
 
-                                int numberOfTanks = convertUnSignedIntFrom4Bytes(vnBuffer,8);
+                                numberOfTanks = convertUnSignedIntFrom4Bytes(vnBuffer,8);
                                 // Each tank is in the following format. (8 bytes long)
                                 // 1           2       3         4     (number)
                                 // 0           4       8         10    (postion)
@@ -319,7 +320,14 @@ if (readEfisData)
                                 efisFuelRemaining = 0.0;
                                 for (int i = 0; i < numberOfTanks; ++i)  // cycle through all the tanks.
                                 {
-                                  efisFuelRemaining += convertUnSignedIntFrom4Bytes(vnBuffer,12 + (i*8) ) * 0.002642; // get tank (convert from liters to gals) and add to total fuel amount.
+                                  #ifdef EFISDATADEBUG
+                                  Serial.printf("MGL Fuel: tank:%i remaining %.2f\n", i, convertUnSignedIntFrom4Bytes(vnBuffer,12 + (i*8) ) * 0.002642);                                     
+                                  #endif
+                                //  efisFuelRemaining += convertUnSignedIntFrom4Bytes(vnBuffer,12 + (i*8) ) * 0.002642; // get tank (convert from liters to gals) and add to total fuel amount.
+                                }
+                                // only use the 1st 2 tanks of fuel
+                                if(numberOfTanks >= 2) {
+                                  //efisFuelRemaining = (convertUnSignedIntFrom4Bytes(vnBuffer,12) * 0.002642) + (convertUnSignedIntFrom4Bytes(vnBuffer,20) * 0.002642);
                                 }
 
                                 #ifdef EFISDATADEBUG
