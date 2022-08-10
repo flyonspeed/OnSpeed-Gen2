@@ -1,3 +1,70 @@
+#pragma pack(push, 1)
+struct MGL_Msg1
+    {
+    int32_t   PAltitude;        // longint; Pressure altitude in feet
+    int32_t   BAltitude;        // longint; Pressure altitude in feet, baro corrected
+    uint16_t  IAS;              // word; Indicated airspeed in 10th Km/h
+    uint16_t  TAS;              // word; True airspeed in 10th Km/h
+    int16_t   AOA;              // smallint; Angle of attack in tenth of a degree
+    int16_t   VSI;              // smallint; Vertical speed in feet per minute
+    uint16_t  Baro;             // word; Barometric pressure in 10th millibars (actual measurement from altimeter sensor, actual pressure)
+    uint16_t  Local;            // word; Local pressure setting in 10th millibars (QNH)
+    int16_t   OAT;              // smallint; Outside air temperature in degrees C
+    uint8_t   Humidity;         // byte; 0-99%. If not available 0xFF
+    uint8_t   SystemFlags;      // Byte; See description below
+    uint8_t   Hour;             // bytes; Time as set in RTC. 24 hour format, two digit year.
+    uint8_t   Minute;
+    uint8_t   Second;
+    uint8_t   Date;
+    uint8_t   Month;
+    uint8_t   Year;
+    uint8_t   FTHour;           // bytes; Flight time since take off. Hours, minutes.
+    uint8_t   FTMin;
+    int32_t   Checksum;         // longint; CRC32
+    }; // end Msg1
+
+struct MGL_Msg3
+    {
+    uint16_t  HeadingMag;       // word; Magnetic heading from compass. 10th of a degree
+    int16_t   PitchAngle;       // smallint; AHRS pitch angle 10th of a degree
+    int16_t   BankAngle;        // smallint; AHRS bank angle 10th of a degree
+    int16_t   YawAngle;         // smallint; AHRS yaw angle 10th of a degree (see notes below)
+    int16_t   TurnRate;         // smallint; Turn rate in 10th of a degree per second
+    int16_t   Slip;             // smallint; Slip (ball position) -50 (left) to +50 (right)
+    int16_t   GForce;           // smallint; Acceleration acting on aircraft in Z axis (+ is down)
+    int16_t   LRForce;          // smallint; Acceleration acting on aircraft in left/right axis (+ if right)
+    int16_t   FRForce;          // smallint; Acceleration acting on aircraft in forward/rear axis (+ is forward)
+    int16_t   BankRate;         // smallint; Rate of bank angle change (See notes on units)
+    int16_t   PitchRate;        // smallint; Rate of pitch angle change
+    int16_t   YawRate;          // smallint; Rate of yaw angle change
+    uint8_t   SensorFlags;      // byte; See description below
+    uint8_t   PaddingByte1;     // byte; 0x00 For alignment
+    uint8_t   PaddingByte2;     // byte; 0x00 For alignment
+    uint8_t   PaddingByte3;     // byte; 0x00 For alignment
+    int32_t   Checksum;         // longint; CRC32
+    }; // end Msg3
+
+struct MGL
+  {
+  // Common to all messages
+  uint8_t   DLE;              // byte; 0x05
+  uint8_t   STX;              // byte; 0x02
+  uint8_t   MessageLength;    // byte; 0x18 36 bytes following MessageVersion - 12
+  uint8_t   MessageLengthXOR; // byte; 0xE7
+  uint8_t   MessageType;      // byte; 0x01
+  uint8_t   MessageRate;      // byte; 0x05
+  uint8_t   MessageCount;     // byte; Message Count within current second
+  uint8_t   MessageVersion;   // byte; 0x01
+
+  union
+    {
+    MGL_Msg1    Msg1;
+    MGL_Msg3    Msg3;
+    }; // end union of message types
+  }; // end MGL message struct
+#pragma pack(pop)
+
+
 void readEfisSerial()
 {
 if (readEfisData)
@@ -138,18 +205,20 @@ if (readEfisData)
                  previousEfisByte=vn_inByte;
                  } // while
 
-      } else if (efisID==6) { // MGL data, binary format
-         while (Serial3.available()  && packetCount<EFIS_PACKET_SIZE)
-                    {                      
+      } else if (efisID==6) { // MGL data, binary format        
+    while (Serial3.available() && packetCount<100)
+                    {
                     // receive one byte
                     byte    vn_inByte;
+                    MGL    * mglMsg = (MGL *)vnBuffer;
 
                     // Data Read
                     // ---------
 
                     vn_inByte = Serial3.read();
                     lastReceivedEfisTime=millis();
-                     packetCount++;
+                    packetCount++;
+                    charsreceived++;
 
                     // Sync byte 1
                     if (vnBufferIndex == 0)
@@ -183,13 +252,13 @@ if (readEfisData)
                         if (vnBufferIndex == 4)
                             {
                             // Check for corrupted length data
-                            if ((vnBuffer[2] ^ vnBuffer[3]) != 0xFF)
+                            if ((mglMsg->MessageLength ^ mglMsg->MessageLengthXOR) != 0xFF)
                                 vnBufferIndex = 0;
                             else
                                 {
                                 // Make a proper message length
-                                mglMsgLen = vnBuffer[2];
-                                if (mglMsgLen == 0)
+                                mglMsgLen = mglMsg->MessageLength;
+                                if (mglMsgLen == 0x00)
                                     mglMsgLen = 256;
                                 mglMsgLen += 20;
                                 }
@@ -214,14 +283,9 @@ if (readEfisData)
                     if ((vnBufferIndex >  3        ) &&
                         (vnBufferIndex >= mglMsgLen))
                         {
-                        switch (vnBuffer[4])
+                        switch (mglMsg->MessageType)
                             {
                             case 1 : // Primary flight data
-
-            // 1          2          3      4      5      6     7      8          9      10        11           12     13     14     15     16     17    18      19     20  (number)
-            // 8          12         16     18     20     22    24     26         28     30        31           32     33     34     35     36     37    38      39     40  (postion)
-            // PAltitude, BAltitude, ASI,   TAS   ,AOA   ,VSI  ,Baro  ,LocalBaro, OAT  , Humidity, SystemFlags, Hour , Min  , Sec  , Day  , Month, Year ,FTHour, FTMin, Checksum
-            // int(4byte),int      , uShort,uShort,Short ,Short,uShort,uShort   , Short, uByte   , uByte      , uByte, uByte, uByte, uByte, uByte, uByte,uByte , uByte, int(4byte)
 
                                 if (vnBufferIndex != 44)
                                     {
@@ -231,15 +295,13 @@ if (readEfisData)
                                     break;
                                     }
 
-                                efisPalt         = convertUnSignedIntFrom4Bytes(vnBuffer,8);
-                            // theEFISData.bAlt  = convertUnSignedIntFrom4Bytes(vnBuffer,12);
-                                efisIAS          = convertUnSignedIntFrom2Bytes(vnBuffer,16) * 0.05399565f; // airspeed in 10th of Km/h.  * 0.05399565 to knots. * 0.6213712 to mph
-                                efisTAS          = convertUnSignedIntFrom2Bytes(vnBuffer,18) * 0.05399565f; // convert to knots
-                                efisPercentLift  = convertSignedIntFrom2Bytes(vnBuffer,20) ; // aoa
-                                efisVSI          = convertSignedIntFrom2Bytes(vnBuffer,22) ; // vsi in FPM.
-                       // float baro             = convertUnSignedIntFrom2Bytes(vnBuffer,24) * 0.0029529983071445;  //convert from mbar to inches of mercury.
-                              // theEFISData.alt = palt - ((29.921 - baro) / 0.00108);  // calc alt.
-                                efisOAT          = float(convertUnSignedIntFrom2Bytes(vnBuffer,28));  // c
+                                efisPalt         =       mglMsg->Msg1.PAltitude; 
+                                efisIAS          =       mglMsg->Msg1.IAS * 0.05399565f;    // airspeed in 10th of Km/h.  * 0.05399565 to knots. * 0.6213712 to mph
+                                efisTAS          =       mglMsg->Msg1.TAS * 0.05399565f;    // convert to knots
+                                efisPercentLift  =       mglMsg->Msg1.AOA;                  // aoa
+                                efisVSI          =       mglMsg->Msg1.VSI;                  // vsi in FPM.
+                                efisOAT          = float(mglMsg->Msg1.OAT);                 // c
+
                                 // sprintf(efisTime,"%i:%i:%i",byte(vnBuffer[32]),byte(vnBuffer[33]),byte(vnBuffer[34]));  // pull the time out of message.
                                 #ifdef _WIN32
                                 efisTime = std::to_string(vnBuffer[32])+":"+std::to_string(vnBuffer[33])+":"+std::to_string(vnBuffer[34]);  // get efis time in string.
@@ -249,24 +311,20 @@ if (readEfisData)
 
                                 efisTimestamp = millis();
 
-                                #ifdef _WIN32
-                                printf("MGL primary  time:%i:%i:%i Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%.2f\n",vnBuffer[32],vnBuffer[33],vnBuffer[34],efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
-                                //printf("MGL iEfIS: efisIAS %.2f,  efisPercentLift %i, efisPalt %i, efisVSI %i, efisTAS %.2f, efisOAT %.2f, efisTime %s\n", efisIAS, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisTime.c_str());
-                                #endif
-
                                 #ifdef EFISDATADEBUG
-                                Serial.printf("MGL primary  time:%i:%i:%i Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%.2f\n",vnBuffer[32],vnBuffer[33],vnBuffer[34],efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
-                                Serial.printf("MGL iEfIS: efisIAS %.2f, efisPitch %.2f, efisRoll %.2f, efisLateralG %.2f, efisVerticalG %.2f, efisPercentLift %i, efisPalt %i, efisVSI %i, efisTAS %.2f, efisOAT %.2f, efisHeading %i ,efisTime %s\n", efisIAS, efisPitch, efisRoll, efisLateralG, efisVerticalG, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisHeading, efisTime.c_str());
+                                //#ifdef _WIN32
+                                //printf("MGL primary  time:%02i:%02i:%02i Palt: %5i \tIAS: %5.1f\tTAS: %5.1f\tpLift: %3i\tVSI:%5i\tOAT:%4.1f\n",
+                                //        MGL_MSG->Msg1.Hour,MGL_MSG->Msg1.Minute,MGL_MSG->Msg1.Second,efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
+                                //printf("MGL iEfIS: efisIAS %5.1f,  efisPercentLift %3i, efisPalt %4i, efisVSI %5i, efisTAS %5.1f, efisOAT %4.1f, efisTime %s\n", 
+                                //        efisIAS, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisTime.c_str());
+                                //#else
+                                //Serial.printf("MGL primary  time:%i:%i:%i Palt: %i \tIAS: %.2f\tTAS: %.2f\tpLift: %i\tVSI:%i\tOAT:%.2f\n",MGL_MSG->Msg1.Hour,MGL_MSG->Msg1.Minute,MGL_MSG->Msg1.Second,efisPalt,efisIAS,efisTAS,efisPercentLift,efisVSI,efisOAT);
+                                Serial.printf("MGL iEfIS: efisIAS %.2f, efisPitch %.2f, efisRoll %.2f, efisLateralG %.2f, efisVerticalG %.2f, efisPercentLift %i, efisPalt %i, efisVSI %i, efisTAS %.2f, efisOAT %.2f, efisHeading %i ,efisTime %s\n", efisIAS, efisPitch, efisRoll, efisLateralG, efisVerticalG, efisPercentLift,efisPalt,efisVSI,efisTAS,efisOAT,efisHeading, efisTime.c_str());                                                                                    
+                                //#endif
                                 #endif
                                 break;
 
                             case 3 : // Attitude flight data
-
-            // 1           2           3          4         5         6     7       8        9        10        11         12       13           14        15        16        17 (number)
-            // 8           10          12         14        16        18    20      22       24       26        28         30       32           33        34        35        36 (postion)
-            // HeadingMag, PitchAngle, BankAngle, YawAngle, TurnRate, Slip, GForce, LRForce, FRForce, BankRate, PitchRate, YawRate, SensorFlags, Padding1, Padding2, Padding3, Checksum
-            // uShort    , Short     , Short    , Short   , Short   , Short, Short, Short  , Short  , Short   , short    , short  , uByte      , uByte   , uByte   , uByte   , int(4byte)
-            // in C Shorts are 2 bytes. uShort is 2 bytes unsigned.
 
                                 if (vnBufferIndex != 40)
                                     {
@@ -276,20 +334,20 @@ if (readEfisData)
                                     break;
                                     }
 
-                                efisHeading   = int(convertUnSignedIntFrom2Bytes(vnBuffer,8) * 0.1);
-                                efisPitch     = convertSignedIntFrom2Bytes(vnBuffer, 10) * 0.1f;
-                                efisRoll      = convertSignedIntFrom2Bytes(vnBuffer, 12) * 0.1f;
-                                efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer, 20) * 0.01f;
-                                efisLateralG  = convertSignedIntFrom2Bytes(vnBuffer, 22) * 0.01f;
+                                efisHeading   = int(mglMsg->Msg3.HeadingMag * 0.1);
+                                efisPitch     =     mglMsg->Msg3.PitchAngle * 0.1f;
+                                efisRoll      =     mglMsg->Msg3.BankAngle  * 0.1f;
+                                efisVerticalG =     mglMsg->Msg3.GForce     * 0.01f;
+                                efisLateralG  =     mglMsg->Msg3.LRForce    * 0.01f;
 
                                 efisTimestamp = millis();
 
-                                #ifdef _WIN32
-                                printf("MGL Attitude  Head: %i \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
-                                #endif
-
                                 #ifdef EFISDATADEBUG
+                                //#ifdef _WIN32
+                                //printf("MGL Attitude  Head: %3i \tPitch: %5.2f\tRoll: %5.2f\tvG:%5.2f\tlG:%5.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
+                                //#else
                                 Serial.printf("MGL Attitude  Head: %i \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);
+                                //#endif
                                 #endif
                                 break;
 
@@ -299,6 +357,9 @@ if (readEfisData)
 
                         // Get buffer ready for next message
                         vnBufferIndex = 0;
+
+                        // Break out of the loop to give other processes a chance
+                        break;
                         } // end if full message
 
                     } // end while serial bytes available
