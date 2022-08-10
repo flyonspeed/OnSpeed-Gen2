@@ -139,8 +139,8 @@ if (readEfisData)
                  } // while
 
       } else if (efisID==6) { // MGL data, binary format
-         while (Serial3.available())
-                    {
+         while (Serial3.available()  && packetCount<EFIS_PACKET_SIZE)
+                    {                      
                     // receive one byte
                     byte    vn_inByte;
 
@@ -149,6 +149,7 @@ if (readEfisData)
 
                     vn_inByte = Serial3.read();
                     lastReceivedEfisTime=millis();
+                     packetCount++;
 
                     // Sync byte 1
                     if (vnBufferIndex == 0)
@@ -280,6 +281,8 @@ if (readEfisData)
                                 efisRoll      = convertSignedIntFrom2Bytes(vnBuffer, 12) * 0.1f;
                                 efisVerticalG = convertSignedIntFrom2Bytes(vnBuffer, 20) * 0.01f;
                                 efisLateralG  = convertSignedIntFrom2Bytes(vnBuffer, 22) * 0.01f;
+
+                                efisTimestamp = millis();
 
                                 #ifdef _WIN32
                                 printf("MGL Attitude  Head: %i \tPitch: %.2f\tRoll: %.2f\tvG:%.2f\tlG:%.2f\n",efisHeading,efisPitch,efisRoll,efisVerticalG,efisLateralG);

@@ -1,6 +1,7 @@
 void checkSerial()
 {
  // check for Serial input lockups
+  
       #ifdef EFISDATADEBUG
       Serial.printf("\nloopcount: %i",loopcount);
       Serial.printf("\nchars received: %i",charsreceived);     

@@ -7,7 +7,7 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.2.3.g1" //Bob's MGL parser fix.
+#define VERSION "3.2.3.g2" //Bob's MGL parser fix.
 //"3.2.3f" // 7/17/2022 Fixed VSI unit conversion issue and Roll calibration direction.
 //"3.2.3e" //7/15/2021 Covid-affected update, proceed with caution. Added checksums to data download. Also change comm speeds to 1,000,000bps
 //"3.2.3d" // 7/14/2022 tuned kalmanVSI filter
@@ -70,6 +70,20 @@
 //IMU 128
 //Sensors 128
 
+
+// debug config. Comment out any of them to disable serial debug output.
+//#define SENSORDEBUG // show sensor debug
+//#define EFISDATADEBUG // show efis data debug
+//define BOOMDATADEBUG  // show boom data debug
+//#define TONEDEBUG // show tone related debug info
+//#define SDCARDDEBUG  // show SD writing debug info
+//#define VOLUMEDEBUG  // show audio volume info
+//#define VNDEBUG // show VN-300 debug info
+//#define AXISDEBUG //show accelerometer axis configuration
+//#define IMUTEMPDEBUG
+//#define AGEDEBUG // debug data age (boom,efis [ms])
+
+
                          
 #define DEFAULT_CONFIG  default_config
 
@@ -122,18 +136,6 @@
 #define BOOM_PACKET_SIZE  50
 #define EFIS_PACKET_SIZE 512
 
-
-// debug config. Comment out any of them to disable serial debug output.
-//#define SENSORDEBUG // show sensor debug
-//#define EFISDATADEBUG // show efis data debug
-//define BOOMDATADEBUG  // show boom data debug
-//#define TONEDEBUG // show tone related debug info
-//#define SDCARDDEBUG  // show SD writing debug info
-//#define VOLUMEDEBUG  // show audio volume info
-//#define VNDEBUG // show VN-300 debug info
-//#define AXISDEBUG //show accelerometer axis configuration
-//#define IMUTEMPDEBUG
-//#define AGEDEBUG // debug data age (boom,efis [ms])
 
 // box functionality config
 //String dataSource = "TESTPOT"; // potentiometer wiper on Pin 10 of DSUB 15 connector
