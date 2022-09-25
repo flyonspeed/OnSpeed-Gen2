@@ -233,6 +233,10 @@ if (on)
          flightData.DerivedAOA=[];
          flightData.CP=[];
          flightData.PitchRate=[];
+         flightData.smoothedIAS=[];
+         flightData.smoothedCP=[];
+         flightData.Pitch=[];
+         flightData.Flightpath=[];
          flightData.DecelRate=[];         
         }
         else

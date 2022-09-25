@@ -21,7 +21,10 @@ OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //#define SERIALDATADEBUG // show serial packet debug
 //#define IAS_IN_MPH  // uncomment this line for IAS in MPH, otherwise it will display in Kts;
 
-#define firmwareVersion "3.2.2l"
+#define firmwareVersion "3.2.3g"
+
+// todo:
+// add wifi IP address to firmware upgrade display
 
 #include <GaugeWidgets.h>
 #include <M5Stack.h>
@@ -171,75 +174,8 @@ void setup() {
 // prefill gHistory buffer
 for (int i=0;i<300;i++) gHistory[i]=1.00;
 
-// load preferences for Serial port selection)
-preferences.begin("OnSpeed", false);
-selectedPort=preferences.getUInt("SerialPort", 0);
-unsigned long detectSerialStart=millis();
-while (selectedPort==0 && millis()-detectSerialStart<30000) // allow 30 seconds to detect serial port
-          {
-          // check serial port       
-          selectedPort=checkSerial();
-          // save serial port preference
-          if (selectedPort!=0) preferences.putUInt("SerialPort", selectedPort);
-          }
-preferences.end();
+displaySplashScreen();  
 
-//start selected serials port as Serial2
-
-switch (selectedPort) {
-                      case 1: {
-                              // TTL input via power board (including v2 Onspeed)
-                              Serial2.begin (115200, SERIAL_8N1, 16, 17,false); //GPIO16 is RX, GPIO17 is TX  (Vern's power board)
-                              Serial.println("GPIO16 is RX, GPIO17 is TX, TTL");
-                              break;
-                              }
-                      case 2: {
-                              // rs232 input via power board (including v3 Onspeed)
-                              Serial2.begin (115200, SERIAL_8N1, 16, 17,true); //GPIO16 is RX, GPIO17 is TX  (Vern's power board)   
-                              Serial.println("GPIO16 is RX, GPIO17 is TX, RS232");
-                              break;
-                              }
-                      case 3: {
-                              // simulator demo M5 with onspeed v3 on pin 9 TTL
-                              Serial2.begin (115200, SERIAL_8N1, 22, 17,false); //GPIO22 is RX, GPIO17 is TX  (straight M5) 
-                              Serial.println("GPIO22 is RX, GPIO17 is TX, TTL"); 
-                              break;
-                              }
-                      case 0: {
-                              gdraw.setColorDepth(8);
-                              gdraw.createSprite(WIDTH, HEIGHT);
-                              gdraw.fillSprite (TFT_BLACK);
-                              gdraw.setFreeFont(FSS12);
-                              gdraw.setTextDatum(MC_DATUM);
-                              gdraw.setTextColor (TFT_RED);
-                              gdraw.drawString("No Serial Stream Detected",160,120);
-                              gdraw.setTextColor (TFT_WHITE);
-                              gdraw.drawString("Is OnSpeed running?",160,160);
-                              gdraw.pushSprite (0, 0);
-                              gdraw.deleteSprite();
-                              delay(3000);
-                              break;
-                              }
-                    }
-
-Serial.begin(115200); // console serial
-  
-delay (100);
-
-  //
-  // Display splash screen
-  //
-  gdraw.setFreeFont(FSSB24);
-  gdraw.setTextColor (TFT_WHITE);
-  gdraw.setTextDatum(MC_DATUM);
-  gdraw.drawString("Fly OnSpeed",160,60);
-
-  gdraw.setFreeFont(FSS9);
-  gdraw.drawString("version: "+String(firmwareVersion),160,120);
-  gdraw.drawString("To upgrade press Center button",160,220);
-  gdraw.pushSprite (0, 0);
-  gdraw.deleteSprite();
-  M5.update();
   // duration of splash screen display, check for center button for fw upgrade
   uint64_t waitTime = millis();
   while (millis()-waitTime<3000)
@@ -248,6 +184,7 @@ delay (100);
     //Button B held down at bootup
   if (M5.BtnB.isPressed())
       {
+      fwUpdateMode=true; 
       gdraw.setColorDepth(8);
       gdraw.createSprite(WIDTH, HEIGHT);
       gdraw.fillSprite (TFT_BLACK);
@@ -343,11 +280,21 @@ delay (100);
   server.onNotFound([]() {
       server.send(404, "text/plain", "FileNotFound");
       });
-      fwUpdateMode=true;
       break; // break while loop
       }
 
     }
+
+if (fwUpdateMode) return; // do not continue if firmware upgrade mode was selected.
+
+//select serial port from preferences or detect it
+serialSetup();
+
+Serial.begin(115200); // console serial
+  
+delay (100);
+
+ 
 
 } // setup
 
@@ -360,6 +307,7 @@ void loop() {
         {
          fwUpdateMode=false;         
          WiFi.softAPdisconnect (true);
+         serialSetup(); // firmware updat canceled, set up serial port
         }
       return;
       }
@@ -1443,4 +1391,74 @@ while (millis()-readSerialTimeout<5000 && ResultString.length()<200)
   }
 Serial.println(ResultString);  
 return ResultString;
+}
+
+void displaySplashScreen()
+{
+// display splash screen and firmware upgrade option
+  gdraw.setFreeFont(FSSB24);
+  gdraw.setTextColor (TFT_WHITE);
+  gdraw.setTextDatum(MC_DATUM);
+  gdraw.drawString("Fly OnSpeed",160,60);
+
+  gdraw.setFreeFont(FSS9);
+  gdraw.drawString("version: "+String(firmwareVersion),160,120);
+  gdraw.drawString("To upgrade press Center button",160,220);
+  gdraw.pushSprite (0, 0);
+  gdraw.deleteSprite();
+  M5.update();
+}
+
+void serialSetup()
+{
+preferences.begin("OnSpeed", false);
+selectedPort=preferences.getUInt("SerialPort", 0);
+unsigned long detectSerialStart=millis();
+while (selectedPort==0 && millis()-detectSerialStart<30000) // allow 30 seconds to detect serial port
+          {
+          // check serial port       
+          selectedPort=checkSerial();
+          // save serial port preference
+          if (selectedPort!=0) preferences.putUInt("SerialPort", selectedPort);
+          }
+preferences.end();
+    
+
+//start selected serial port as Serial2
+
+switch (selectedPort) {
+                      case 1: {
+                              // TTL input via power board (including v2 Onspeed)
+                              Serial2.begin (115200, SERIAL_8N1, 16, 17,false); //GPIO16 is RX, GPIO17 is TX  (Vern's power board)
+                              Serial.println("GPIO16 is RX, GPIO17 is TX, TTL");
+                              break;
+                              }
+                      case 2: {
+                              // rs232 input via power board (including v3 Onspeed)
+                              Serial2.begin (115200, SERIAL_8N1, 16, 17,true); //GPIO16 is RX, GPIO17 is TX  (Vern's power board)   
+                              Serial.println("GPIO16 is RX, GPIO17 is TX, RS232");
+                              break;
+                              }
+                      case 3: {
+                              // simulator demo M5 with onspeed v3 on pin 9 TTL
+                              Serial2.begin (115200, SERIAL_8N1, 22, 17,false); //GPIO22 is RX, GPIO17 is TX  (straight M5) 
+                              Serial.println("GPIO22 is RX, GPIO17 is TX, TTL"); 
+                              break;
+                              }
+                      case 0: {
+                              gdraw.setColorDepth(8);
+                              gdraw.createSprite(WIDTH, HEIGHT);
+                              gdraw.fillSprite (TFT_BLACK);
+                              gdraw.setFreeFont(FSS12);
+                              gdraw.setTextDatum(MC_DATUM);
+                              gdraw.setTextColor (TFT_RED);
+                              gdraw.drawString("No Serial Stream Detected",160,120);
+                              gdraw.setTextColor (TFT_WHITE);
+                              gdraw.drawString("Is OnSpeed running?",160,160);
+                              gdraw.pushSprite (0, 0);
+                              gdraw.deleteSprite();
+                              delay(3000);
+                              break;
+                              }
+                    }
 }

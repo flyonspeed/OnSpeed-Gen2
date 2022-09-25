@@ -15,6 +15,7 @@
 #include <WebServer.h>
 #include <Update.h>
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets version 2.1.3
+#include <DNSServer.h>
 //#include <StreamString.h>
 #include "html_header.h"
 #include "html_liveview.h"
@@ -29,7 +30,7 @@
 
 #define BAUDRATE_WIFI         1000000
 
-String wifi_fw="3.2.3g"; // wifi firmware version
+String wifi_fw="3.2.3g3"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
@@ -60,6 +61,7 @@ typedef struct
 String pageHeader;
 String pageFooter="</body></html>";
 String uploadConfigString;
+DNSServer dnsServer;
 WebServer server(80);
 
 // initialize config variables
@@ -2082,8 +2084,8 @@ Serial.setDebugOutput(true);
     
   //called when the url is not defined here
   server.onNotFound([]() {
-     if (!handleFileRead(server.uri())) 
-      server.send(404, "text/plain", "FileNotFound");
+                         if (!handleFileRead(server.uri())) 
+                          server.send(404, "text/plain", "FileNotFound");
       });
   
   // start server
@@ -2092,6 +2094,7 @@ Serial.setDebugOutput(true);
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
   if (MDNS.begin("onspeed")) MDNS.addService("http", "tcp", 80);  
+  dnsServer.start(53, "onspeed.local",  Ip);
   WiFi.setTxPower(WIFI_POWER_2dBm);
 } // setup
 
@@ -2140,6 +2143,7 @@ String getTeensyVersion()
 void loop() {
   server.handleClient();
   webSocket.loop();
+  dnsServer.processNextRequest();
 // parse live data from the Teensy via Serial
 unsigned long bytesAvailable;
 int readCounter=0;
