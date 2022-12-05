@@ -52,6 +52,8 @@ svg {position:absolute;margin:0 auto; display: block;}
  var iVSI=0;
  var derivedAOA=0;
  var pitchRate=0;
+
+ var calSource="";
 setInterval(updateAge,500); 
 var websocket;
 
@@ -166,10 +168,12 @@ if ((in_max - in_min) + out_min ==0) return 0;
    OnSpeed.PitchRate= OnSpeedArray[18];
    
    OnSpeed.DecelRate= OnSpeedArray[19];
-   
-   OnSpeed.CRC= OnSpeedArray[20]; 
 
-   var crc_string=OnSpeed.AOA+','+OnSpeed.Pitch+','+OnSpeed.Roll+','+OnSpeed.IAS+','+OnSpeed.PAlt+','+OnSpeed.verticalGLoad+','+OnSpeed.lateralGLoad+','+OnSpeed.alphaVA+','+OnSpeed.LDmax+','+OnSpeed.OnspeedFast+','+OnSpeed.OnspeedSlow+','+OnSpeed.OnspeedWarn+','+OnSpeed.flapsPos+','+OnSpeed.coeffP+','+OnSpeed.dataMark+','+OnSpeed.kalmanVSI+','+OnSpeed.flightPath+','+OnSpeed.PitchRate+','+OnSpeed.DecelRate;
+   OnSpeed.calSourceID= OnSpeedArray[20];
+      
+   OnSpeed.CRC= OnSpeedArray[21]; 
+
+   var crc_string=OnSpeed.AOA+','+OnSpeed.Pitch+','+OnSpeed.Roll+','+OnSpeed.IAS+','+OnSpeed.PAlt+','+OnSpeed.verticalGLoad+','+OnSpeed.lateralGLoad+','+OnSpeed.alphaVA+','+OnSpeed.LDmax+','+OnSpeed.OnspeedFast+','+OnSpeed.OnspeedSlow+','+OnSpeed.OnspeedWarn+','+OnSpeed.flapsPos+','+OnSpeed.coeffP+','+OnSpeed.dataMark+','+OnSpeed.kalmanVSI+','+OnSpeed.flightPath+','+OnSpeed.PitchRate+','+OnSpeed.DecelRate+','+OnSpeed.calSourceID;
    //console.log("CRC",crc_string);
 
    var crc_calc=0;
@@ -219,8 +223,29 @@ if ((in_max - in_min) + out_min ==0) return 0;
     OnspeedSlow=parseFloat(OnSpeed.OnspeedSlow);
 
     OnspeedWarn=parseFloat(OnSpeed.OnspeedWarn);
-
-    lastUpdate=Date.now();   
+    lastUpdate=Date.now();
+    // 0= IMU, 1=VN-300, 2=AFS/SkyView, 3=Dynon D10, 4=G5, 5=G3X, 6=MGL
+      switch (parseInt(OnSpeed.calSourceID)) {
+      case 0:
+      calSource="Internal IMU";
+      break;
+      case 1: calSource="VectorNav VN-200/300";
+        break;
+      case 2: calSource="SkyView/Advanced";
+        break;
+      case 3: calSource="Dynon D10/D100";
+        break;
+      case 4: calSource="Garmin G5";
+        break;
+      case 5: calSource="Garmin G3X";
+        break;
+      case 6: calSource="MGL iEFIS";
+        break;      
+      default:
+        calSource='N/A';
+  }
+    
+      writeToCalibrationSource(calSource); 
 
     //console.log('log:',AOA,IAS,PAlt,GLoad,GLoadLat,PitchAngle,OnSpeed.LDmax,OnSpeed.OnspeedFast,OnSpeed.OnspeedSlow,OnSpeed.OnspeedWarn);
 
@@ -373,7 +398,16 @@ updateAttitude(OnSpeed.Pitch,OnSpeed.Roll);
 
     status.innerHTML = message;
 
-  }  
+  } 
+
+ function writeToCalibrationSource(calSource)
+  {
+
+    var status = document.getElementById("calibrationsource");
+
+    status.innerHTML = calSource;
+
+  }   
 
  function updateAttitude(pitch,roll) {
 
@@ -723,7 +757,8 @@ updateAttitude(0,0);
 
      <div id="status-label">
 
-       <strong>Status:</strong> <span id="connectionstatus">DISCONNECTED.</span>
+       <strong>Status:</strong> <span id="connectionstatus">DISCONNECTED.</span><br>
+       <strong>Calibration Source:</strong> <span id="calibrationsource">N/A</span>
 
      </div>
 

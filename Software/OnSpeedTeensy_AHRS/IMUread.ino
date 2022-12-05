@@ -44,7 +44,6 @@ I2CwriteByte(_i2CAddressISM330,CTRL9_XL,B11100001);
 delay(50);
 #endif
 
- 
 }
 
 void resetAccelGyro()
@@ -335,6 +334,11 @@ Ax=getAccelForAxis(forwardGloadAxis);// forward G
 Gx=getGyroForAxis(rollGyroAxis); // roll rate (in deg/sec)
 Gy=getGyroForAxis(pitchGyroAxis); // pitch rate
 Gz=getGyroForAxis(yawGyroAxis); // yaw rate
+
+
+// static pressure read. We read it here, need high speed static pressure for KalmanVSI
+Pstatic=GetStaticPressure();
+Palt=145366.45*(1-pow((Pstatic+pStaticBias)/1013.25,0.190284)); //Pstatic in milliBars,Palt in feet
 
 //Serial.printf("%.3f,%.3f,%.3f,%.2f,%.1f\n",Gx,Gy,Gz,imuTemp,imuTempRate);
 

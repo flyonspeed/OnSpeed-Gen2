@@ -90,22 +90,22 @@ while (SensorFile.available())
                   calcAOA(PfwdSmoothed,P45Smoothed); // calculate AOA based on Pfwd divided by non-bias-corrected P45;                
 
                   // efis lateralG
-                  efisLateralG=valueArray[efisLateralGColumn].toFloat();
+                  efisLateralG=valueArray[27].toFloat()*0.101972; // vnLateral g in m/sec^2
 
                   // efisPitch
-                  efisPitch=valueArray[36].toFloat();
+                  efisPitch=valueArray[30].toFloat(); // vnPitch
 
                   // efisRoll
-                  efisRoll=valueArray[37].toFloat();
+                  efisRoll=valueArray[31].toFloat(); // vnRoll
 
                   //efisPalt
                   efisPalt=valueArray[6].toFloat();
 
 
                   //VN attitude and VSI
-                  vnPitch=valueArray[36].toFloat();
-                  vnRoll=valueArray[37].toFloat();
-                  vnVelNedDown=valueArray[31].toFloat();
+                  vnPitch=valueArray[30].toFloat();
+                  vnRoll=valueArray[31].toFloat();
+                  vnVelNedDown=valueArray[40].toFloat();
                   
                   
                   // get airspeed
@@ -116,7 +116,7 @@ while (SensorFile.available())
                  
                   dataMark=valueArray[10].toInt();
 
-                  kalmanVSI=valueArray[55].toFloat()/196.85;
+                  kalmanVSI=valueArray[49].toFloat()/196.85;
 
                   imuIndex=12;                 
                   // get IMU values from log                 
@@ -132,6 +132,8 @@ while (SensorFile.available())
                   updateTones(); // generate tones   
 
                   //Serial.printf("%.2f,%.1f,%.2f,%.1f\n",smoothedPitch,efisPitch,smoothedRoll,efisRoll);
+
+                  Serial.printf("%.1f,%.1f\n",kalmanVSI,-vnVelNedDown);
                   //Serial.printf("%.2f,%.1f,%.2f,%.1f\n",smoothedPitch,efisPitch,smoothedRoll,efisRoll);
                   //Serial.printf("%.1f,%.1f,%.1f\n",AOA,derivedAOA,flightPath);
                   //Serial.printf("%.1f,%.1f\n",smoothedIAS,smoothedTAS);

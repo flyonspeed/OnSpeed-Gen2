@@ -103,9 +103,6 @@ readingSensors=true;
 // reads sensors 50 times/second
 Pfwd=GetPressurePfwd()-pFwdBias;
 P45=GetPressureP45()-p45Bias;
-Pstatic=GetStaticPressure();
-Palt=145366.45*(1-pow((Pstatic+pStaticBias)/1013.25,0.190284)); //Pstatic in milliBars,Palt in feet
-
 flapsIndex=getFlapsIndex();
 flapsPos=flapDegrees.Items[flapsIndex];
 setAOApoints(flapsIndex);

@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.2.3.g3" //Bob's MGL parser fix and optimization
+#define VERSION "3.3.0" //12/4/2022 fixed KalmanVSI (reading Pstatic at 208Hz together with IMU). Added calibration data source to Wifi display. Requires wifi firmware upgrade!
+//"3.2.3.g3" //Bob's MGL parser fix and optimization
 //"3.2.3f" // 7/17/2022 Fixed VSI unit conversion issue and Roll calibration direction.
 //"3.2.3e" //7/15/2021 Covid-affected update, proceed with caution. Added checksums to data download. Also change comm speeds to 1,000,000bps
 //"3.2.3d" // 7/14/2022 tuned kalmanVSI filter
@@ -319,7 +320,7 @@ volatile double coeffP; // coefficient of pressure
 #define SENSOR_INTERVAL 20000  // microsecond interval for sensor read (50hz)
 //#define SENSOR_INTERVAL 4201 // 238hz logging
 //#define REPLAY_INTERVAL 4201.680672268907563
-#define REPLAY_INTERVAL 20000
+#define REPLAY_INTERVAL 4808
 #ifdef IMUTYPE_LSM9DS1
 #define IMU_INTERVAL    4200 // microseconds interval for IMU read
 #endif

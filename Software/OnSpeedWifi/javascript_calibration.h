@@ -118,10 +118,10 @@ if ((in_max - in_min) + out_min ==0) return 0;
    OnSpeed.flightPath=OnSpeedArray[17];
    OnSpeed.PitchRate= OnSpeedArray[18];
    OnSpeed.DecelRate= OnSpeedArray[19];
-   OnSpeed.CRC= OnSpeedArray[20];
+   OnSpeed.calSourceID= OnSpeedArray[20];
+   OnSpeed.CRC= OnSpeedArray[21];
    
-
-   var crc_string=OnSpeed.AOA+','+OnSpeed.Pitch+','+OnSpeed.Roll+','+OnSpeed.IAS+','+OnSpeed.PAlt+','+OnSpeed.verticalGLoad+','+OnSpeed.lateralGLoad+','+OnSpeed.alphaVA+','+OnSpeed.LDmax+','+OnSpeed.OnspeedFast+','+OnSpeed.OnspeedSlow+','+OnSpeed.OnspeedWarn+','+OnSpeed.flapsPos+','+OnSpeed.coeffP+','+OnSpeed.dataMark+','+OnSpeed.kalmanVSI+','+OnSpeed.flightPath+','+OnSpeed.PitchRate+','+OnSpeed.DecelRate;
+   var crc_string=OnSpeed.AOA+','+OnSpeed.Pitch+','+OnSpeed.Roll+','+OnSpeed.IAS+','+OnSpeed.PAlt+','+OnSpeed.verticalGLoad+','+OnSpeed.lateralGLoad+','+OnSpeed.alphaVA+','+OnSpeed.LDmax+','+OnSpeed.OnspeedFast+','+OnSpeed.OnspeedSlow+','+OnSpeed.OnspeedWarn+','+OnSpeed.flapsPos+','+OnSpeed.coeffP+','+OnSpeed.dataMark+','+OnSpeed.kalmanVSI+','+OnSpeed.flightPath+','+OnSpeed.PitchRate+','+OnSpeed.DecelRate+','+OnSpeed.calSourceID;
    var crc_calc=0;
    for (i=0;i<crc_string.length;i++)
        {
@@ -155,6 +155,7 @@ if ((in_max - in_min) + out_min ==0) return 0;
     decelRate=parseFloat(OnSpeed.DecelRate);
     flapsPos=OnSpeed.flapsPos;
     flapIndex=0;
+    
     for (i=0; i<flapDegrees.Count; i++)
          {
          if (flapDegrees[i]==flapsPos)
@@ -177,6 +178,27 @@ if ((in_max - in_min) + out_min ==0) return 0;
     document.getElementById("currentIAS").innerHTML = IASsmoothed;
     document.getElementById("currentDecel").innerHTML=smoothDecelRate.toFixed(1);
     prevIAS=IAS;
+        // 0= IMU, 1=VN-300, 2=AFS/SkyView, 3=Dynon D10, 4=G5, 5=G3X, 6=MGL
+    switch(parseInt(OnSpeed.calSourceID)) {
+    case 0:
+    calSource="Internal IMU";
+    break;
+    case 1: calSource="VectorNav VN-200/300";
+      break;
+    case 2: calSource="SkyView/Advanced";
+      break;
+    case 3: calSource="Dynon D10/D100";
+      break;
+    case 4: calSource="Garmin G5";
+      break;
+    case 5: calSource="Garmin G3X";
+      break;
+    case 6: calSource="MGL iEFIS";
+      break;      
+    default:
+      calSource='N/A';
+    }
+    writeToCalibrationSource(calSource); 
 
     if (dataRecording)
         {
@@ -214,6 +236,12 @@ function writeToStatus(message)
    var status = document.getElementById("connectionstatus");
    status.innerHTML = message;
 }
+
+function writeToCalibrationSource(calSource)
+  {
+    var status = document.getElementById("calibrationsource");
+    status.innerHTML = calSource;
+  }   
 
 function recordData(on)
 {

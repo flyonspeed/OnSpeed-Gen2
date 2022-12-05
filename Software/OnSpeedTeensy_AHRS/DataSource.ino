@@ -36,7 +36,7 @@ void setDataSourceMode()
                                            {
 
                                             LogReplayTimer.priority(240);
-                                            imuSampleRate=238; //238hz update rate for replaying logged data
+                                            imuSampleRate=208; //238hz update rate for replaying logged data
                                             LogReplayTimer.begin(LogReplay,REPLAY_INTERVAL);
                                            } else
                                            {

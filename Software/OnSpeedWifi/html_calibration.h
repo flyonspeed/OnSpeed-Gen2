@@ -56,7 +56,8 @@ body {font-family:'Open Sans',sans-serif}.graph .labels.x-labels{text-anchor:mid
         </div>
       <br>
       <br>        
-          <div align="left">Status: <span id="connectionstatus"></span></div>
+          <div align="left">Status:<br><span id="connectionstatus"></span></div><br>
+          <div align="left">Data Source:<br><span id="calibrationsource"></span></div>
       </div>
  
 

@@ -1,5 +1,9 @@
 // to be compiled on Arduino 1.8.16 and ESP32 Pico Kit board file v1.0.6 (2.0 slows down HTTP transfer, log file downloads are painfully slow)
 
+// Mac Monterey python issue fix ("exec: "python": executable file not found in $PATH")
+// sed -i -e 's/=python /=python3 /g' ~/Library/Arduino15/packages/esp32/hardware/esp32/*/platform.txt
+
+
 ////////////////////////////////////////////////////
 // More details at
 //      http://www.flyOnSpeed.org
@@ -30,7 +34,7 @@
 
 #define BAUDRATE_WIFI         1000000
 
-String wifi_fw="3.2.3g3"; // wifi firmware version
+String wifi_fw="3.3.0"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
