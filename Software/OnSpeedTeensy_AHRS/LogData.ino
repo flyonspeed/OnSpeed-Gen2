@@ -6,9 +6,13 @@ int charsAdded=0;
 int boomAge=0;
 int efisAge=0;
 if (sdLogging)
-        {
+        {          
           charsAdded+=sprintf(logLine, "%lu,%i,%.2f,%i,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%i",timeStamp,Pfwd,PfwdSmoothed,P45,P45Smoothed,Pstatic,Palt,IAS,AOA,flapsPos,dataMark);
           //charsAdded+=sprintf(logLine, "%lu,%i,%.2f,%i,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%i",timeStamp,124,124.56,145,145.00,1013.00,5600.00,110.58,10.25,2,0);
+          #ifdef OAT_AVAILABLE
+           charsAdded+=sprintf(logLine+charsAdded, ",%.2f",OAT);
+          #endif
+          
           charsAdded+= sprintf(logLine+charsAdded, ",%.2f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.2f,%.2f",imuTemp,Az,Ay,Ax,Gx,Gy,Gz,smoothedPitch,smoothedRoll);
           if (readBoom)
             { 
@@ -61,6 +65,9 @@ void createLogFile()
             SensorFile = Sd.open(filenameSensor, O_CREAT | O_WRITE | O_TRUNC);
             if (SensorFile) {
                             SensorFile.print("timeStamp,Pfwd,PfwdSmoothed,P45,P45Smoothed,PStatic,Palt,IAS,AngleofAttack,flapsPos,DataMark");
+                            #ifdef OAT_AVAILABLE
+                            SensorFile.print(",OAT");
+                            #endif
                             SensorFile.print(",imuTemp,VerticalG,LateralG,ForwardG,RollRate,PitchRate,YawRate,Pitch,Roll");
                             if (readBoom) SensorFile.print(",boomStatic,boomDynamic,boomAlpha,boomBeta,boomIAS,boomAge");       
                             if (readEfisData)

@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.3.0" //12/4/2022 fixed KalmanVSI (reading Pstatic at 208Hz together with IMU). Added calibration data source to Wifi display. Requires wifi firmware upgrade!
+#define VERSION "3.3.1" // 1/28/2023  Added functionality to read digital OAT sensor DS18B20 on Pin 9. To enable uncomment the #define OAT_AVAILABLE line. Needs two new libraries: OneWire.h  and DallasTemperature.h
+//"3.3.0" //12/4/2022 fixed KalmanVSI (reading Pstatic at 208Hz together with IMU). Added calibration data source to Wifi display. Requires wifi firmware upgrade!
 //"3.2.3.g3" //Bob's MGL parser fix and optimization
 //"3.2.3f" // 7/17/2022 Fixed VSI unit conversion issue and Roll calibration direction.
 //"3.2.3e" //7/15/2021 Covid-affected update, proceed with caution. Added checksums to data download. Also change comm speeds to 1,000,000bps
@@ -110,8 +111,6 @@
 #define GLIMIT_REPEAT_TIMEOUT   3000 // milliseconds to repeat G limit.
 #define ASYMMETRIC_GYRO_LIMIT   15 // degrees/sec rotation on either axis to trigger asymmetric G limits.
 
-
-
 // coefficient of pressure formula
 #ifdef SPHERICAL_PROBE
   #define PCOEFF(p_fwd,p_45)    atan2(p_45,p_fwd); //spherical CP3
@@ -119,6 +118,9 @@
 #else
   #define PCOEFF(p_fwd,p_45)  p_45/p_fwd; // CP3 // ratiometric CP. CP1 & CP2 are not ratiometric. Can't divide with P45, it goes through zero on Dynon probe.
 #endif
+
+// OAT sensor available
+//#define OAT_AVAILABLE  // DS18B20 sensor on pin 9
 
 // boom curves
 //#define BOOM_ALPHA_CALC(x)      7.0918*pow(10,-13)*x*x*x*x - 1.1698*pow(10,-8)*x*x*x + 7.0109*pow(10,-5)*x*x - 0.21624*x + 310.21; //degrees
@@ -207,6 +209,7 @@ unsigned long lastSDWrite=millis();
 unsigned long lastLedUpdate=millis();
 unsigned long lastImuTempUpdate=millis();
 unsigned long lastDecelUpdate=millis();
+unsigned long lastOATUpdate=millis();
 
 volatile unsigned long lastWatchdogRefresh;
 volatile bool watchdogEnabled=false;
@@ -364,7 +367,7 @@ volatile double coeffP; // coefficient of pressure
 #define PIN_LED1              13    // internal LED for showing serial input state.
 #define PIN_LED2              5    // external LED for showing AOA status (audio on/off)
 #define FLAP_PIN              A2     // flap position switch  (pin 7 on DB15)
-#define OAT_PIN               A14    // OAT analog input pin
+#define OAT_PIN               33    // OAT analog input pin
 #define SWITCH_PIN            2
 #define PULSE_TONE            1
 #define SOLID_TONE            2
@@ -485,6 +488,16 @@ uint8_t  sectorBuffer[512];
 #include "MadgwickFusion.h"
 #include "KalmanFilter.h"
 #include <SavLayFilter.h>
+
+#ifdef OAT_AVAILABLE
+  // set up the digital temperature sensor
+  #include <OneWire.h> //https://github.com/PaulStoffregen/OneWire
+  #include <DallasTemperature.h> //https://github.com/milesburton/Arduino-Temperature-Control-Library
+  #define ONE_WIRE_BUS 33
+  OneWire oneWire(ONE_WIRE_BUS);
+  DallasTemperature oatSensor(&oneWire);
+#endif
+
 
 Madgwick filter;
 KalmanFilter kalman;
@@ -649,6 +662,7 @@ volatile float smoothedIASdiff=0.0;                    // smoothed airspeed
 volatile float smoothedTAS=0.0;                    // smoothed airspeed
 volatile float prevIAS=0.0;                        // previous IAS sample (used to calculate acceleartion)
 volatile float Palt=0.00;                          // pressure altitude
+volatile float OAT=0.00;
 
 float currentRangeSweepValue=RANGESWEEP_LOW_AOA;
 RunningMedian P45Median(pressureSmoothing);
@@ -838,6 +852,14 @@ if (!volumeControl)
   pinMode(TESTPOT_PIN, INPUT);
   //pinMode(SWITCH_PIN, INPUT_PULLUP);
 
+#ifdef OAT_AVAILABLE
+// start the OAT sensor
+  pinMode(33,INPUT_PULLUP);  
+  oatSensor.begin();
+  oatSensor.setWaitForConversion(false);
+  oatSensor.requestTemperatures(); 
+#endif
+  
   Switch.setPressTicks(1000); // long press time
   Switch.attachClick(SwitchSingleClick);
   Switch.attachLongPressStart(SwitchLongPress);
@@ -909,6 +931,7 @@ if (!volumeControl)
  }
 
 // main loop
+
 
 void loop() {
 
@@ -988,6 +1011,16 @@ if (millis()-lastLedUpdate>300)
       heartBeat();
       lastLedUpdate=millis(); 
       }
+
+#ifdef OAT_AVAILABLE
+ // oat read
+ if (millis()-lastOATUpdate>=1000)
+      {
+      OAT=oatSensor.getTempCByIndex(0);
+      oatSensor.requestTemperatures();      
+      lastOATUpdate=millis();
+      }
+#endif      
 
 switchCheck(); // check main switch
       
