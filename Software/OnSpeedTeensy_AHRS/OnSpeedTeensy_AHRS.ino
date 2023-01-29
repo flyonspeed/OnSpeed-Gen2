@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.3.1" // 1/28/2023  Added functionality to read digital OAT sensor DS18B20 on Pin 9. To enable uncomment the #define OAT_AVAILABLE line. Needs two new libraries: OneWire.h  and DallasTemperature.h
+#define VERSION "3.3.2" // 1/29/2023 Fixed TAS formula, and added TAS to the log file.
+//"3.3.1" // 1/28/2023  Added functionality to read digital OAT sensor DS18B20 on Pin 9. To enable uncomment the #define OAT_AVAILABLE line. Needs two new libraries: OneWire.h  and DallasTemperature.h
 //"3.3.0" //12/4/2022 fixed KalmanVSI (reading Pstatic at 208Hz together with IMU). Added calibration data source to Wifi display. Requires wifi firmware upgrade!
 //"3.2.3.g3" //Bob's MGL parser fix and optimization
 //"3.2.3f" // 7/17/2022 Fixed VSI unit conversion issue and Roll calibration direction.
@@ -138,7 +139,6 @@
 // serial data packet size
 #define BOOM_PACKET_SIZE  50
 #define EFIS_PACKET_SIZE 512
-
 
 // box functionality config
 //String dataSource = "TESTPOT"; // potentiometer wiper on Pin 10 of DSUB 15 connector
