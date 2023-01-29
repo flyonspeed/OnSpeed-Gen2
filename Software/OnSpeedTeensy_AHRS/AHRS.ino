@@ -11,8 +11,8 @@ void processAHRS()
   float Temp_rate=0.00198119993;
   float ISA_temp_k=15-Temp_rate*Palt+Kelvin;
   float OAT_k= OAT + Kelvin;
-  float DA = Palt+(ISA_temp_k/Temp_rate)*(1.-power(ISA_temp_k/OAT_k,0.2349690));
-  TASAvg.addValue(IAS/power(1-6.8755856*10^-6 * DA,2.12794)); // formulas from https://edwilliams.org/avform147.htm#Mach   
+  float DA = Palt+(ISA_temp_k/Temp_rate)*(1-pow(ISA_temp_k/OAT_k,0.2349690));
+  TASAvg.addValue(IAS/pow(1-6.8755856*pow(10,-6) * DA,2.12794)); // formulas from https://edwilliams.org/avform147.htm#Mach   
   #else
   TASAvg.addValue(IAS*(1+ Palt / 1000 * 0.02) * 0.514444);
   #endif
