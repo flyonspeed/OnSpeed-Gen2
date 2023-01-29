@@ -9,9 +9,9 @@ void processAHRS()
   #ifdef OAT_AVAILABLE  
   float rho_0 = 1.225;
   float ISA_temp=15.0;
-  float DA = Palt + (120 * (OAT - ISA_temp));
+  float DA = Palt + (118 * (OAT - ISA_temp));
   float rho = rho_0 * pow((1 - (0.0065 * DA) / 288.15), 5.256);
-  TASAvg.addValue(IAS * sqrt(rho / rho_0) * 0.514444);
+  TASAvg.addValue(IAS * sqrt(rho_0 / rho) * 0.514444);
   #else
   TASAvg.addValue(IAS*(1+ Palt / 1000 * 0.02) * 0.514444);
   #endif
