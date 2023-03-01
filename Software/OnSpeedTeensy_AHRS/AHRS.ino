@@ -81,7 +81,10 @@ void processAHRS()
                       
   // calculate smoothed pitch
   float ahrsSmoothingAlpha=2.0/(ahrsSmoothing+1);
-  smoothedPitch= -filter.getPitch() * ahrsSmoothingAlpha+(1-ahrsSmoothingAlpha)*smoothedPitch;
+  float ahrsPitchSmoothingAlpha=ahrsSmoothingAlpha+abs(gPitch)*0.3; // use smoothed pitch (Yaxis) gyroscope for adaptive pitch output filtering
+  ahrsPitchSmoothingAlpha=constrain(ahrsPitchSmoothingAlpha,0.001,1);
+  
+  smoothedPitch= -filter.getPitch() * ahrsPitchSmoothingAlpha+(1-ahrsPitchSmoothingAlpha)*smoothedPitch;
   smoothedRoll= -filter.getRoll() * ahrsSmoothingAlpha +(1-ahrsSmoothingAlpha)*smoothedRoll;
 
 
