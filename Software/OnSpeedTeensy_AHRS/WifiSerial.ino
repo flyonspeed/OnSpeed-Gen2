@@ -366,7 +366,7 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                     } else
                                                                                                                           if (strstr(serialWifiCmdBuffer, "$SENDCONFIGSTRING"))                                                                    
                                                                                                                               {
-                                                                                                                              timersOff();                                                                                                                              
+//                                                                                                                              timersOff();                                                                                                                            
                                                                                                                               checkWatchdog();                                                                                                       
                                                                                                                               String configString="";
                                                                                                                               configurationToString(configString);
@@ -375,13 +375,13 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                               addCRC(configString);                                                                                                                              
                                                                                                                               sendWifiSerialString(configString);
                                                                                                                               Serial.println("Configstring sent to Wifi");                                                                                                                                                                                                                                                            
-                                                                                                                              timersOn();
+  //                                                                                                                            timersOn();
                                                                                                                                                                                                                                                                                                                                                                                     
                                                                                                                               checkWatchdog();
                                                                                                                               } else
                                                                                                                                     if (strstr(serialWifiCmdBuffer, "$SAVECONFIGSTRING"))
                                                                                                                                           {
-                                                                                                                                          timersOff();
+                                                                                                                                          //timersOff();
                                                                                                                                           checkWatchdog();
                                                                                                                                           sdLogging=false;  
                                                                                                                                           // saveConfigString                                                                                                                                          
@@ -412,7 +412,7 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                       }
                                                                                                                                            checkWatchdog();
                                                                                                                                           
-                                                                                                                                          timersOn();
+                                                                                                                                          //timersOn();
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
                                                                                                                                           } else
                                                                                                                                                 if (strstr(serialWifiCmdBuffer, "$AOA"))
@@ -435,14 +435,14 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                     } else
                                                                                                                                                         if (strstr(serialWifiCmdBuffer, "$SENDDEFAULTCONFIGSTRING"))                                                                            
                                                                                                                                                             {
-                                                                                                                                                            timersOff();  
+                                                                                                                                                            //timersOff();  
                                                                                                                                                             Serial.println("Wifi: Default Configstring request from wifi");                                                                                                                                                            
                                                                                                                                                             String configString=String(DEFAULT_CONFIG);
                                                                                                                                                             // add CRC to configString
                                                                                                                                                             addCRC(configString);
                                                                                                                                                             checkWatchdog();                                                                                                                             
                                                                                                                                                             sendWifiSerialString(configString);
-                                                                                                                                                            timersOn();    
+                                                                                                                                                            //timersOn();    
                                                                                                                                                             } else
                                                                                                                                                                 if (strstr(serialWifiCmdBuffer, "$SENSORCONFIG"))
                                                                                                                                                                     {

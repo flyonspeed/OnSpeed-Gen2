@@ -8,7 +8,8 @@
 
 // NOTE: versions 3.3.1 and up are yet untested. Proceed with caution.
 
-#define VERSION "3.3.3" // 3/1/2023 Adaptive pitch filtering for smoother internal AHRS derived pitch angles, useful for IMU based calibration.
+#define VERSION "3.3.4" //fixed reboot on config load/save, and added HIGHRES_ANALOGREAD to have better resolution when reading volume and flap potentiometers.
+//"3.3.3"  // 3/1/2023 Adaptive pitch filtering for smoother internal AHRS derived pitch angles, useful for IMU based calibration.
 //"3.3.2" // 1/29/2023 Fixed TAS formula, and added TAS to the log file.
 //"3.3.1" // 1/28/2023  Added functionality to read digital OAT sensor DS18B20 on Pin 9. To enable uncomment the #define OAT_AVAILABLE line. Needs two new libraries: OneWire.h  and DallasTemperature.h
 //"3.3.0" //12/4/2022 fixed KalmanVSI (reading Pstatic at 208Hz together with IMU). Added calibration data source to Wifi display. Requires wifi firmware upgrade!
@@ -141,6 +142,9 @@
 // serial data packet size
 #define BOOM_PACKET_SIZE  50
 #define EFIS_PACKET_SIZE 512
+
+//analog resolution (use 13 bit analog resolution, default is 10-bit)
+//#define HIGHRES_ANALOGREAD
 
 // box functionality config
 //String dataSource = "TESTPOT"; // potentiometer wiper on Pin 10 of DSUB 15 connector
@@ -795,6 +799,10 @@ void readAccelGyro(bool tempUpdate);
 
 void setup() {
 delay(100);
+#ifdef HIGHRES_ANALOGREAD
+analogReadResolution(13);
+#endif
+
 attachInterrupt(SWITCH_PIN,switchCheck,CHANGE); // switch interrupt
 initI2C(); // initialize i2c ports
 initAccelGyro(); //initialize accelerometer & Gyro (IMU)  
