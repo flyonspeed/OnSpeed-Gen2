@@ -8,7 +8,8 @@
 
 // NOTE: versions 3.3.1 and up are yet untested. Proceed with caution.
 
-#define VERSION "3.3.4" //fixed reboot on config load/save, and added HIGHRES_ANALOGREAD to have better resolution when reading volume and flap potentiometers.
+#define VERSION "3.3.5" // fixed error in adaptive smoothing.
+//"3.3.4" //fixed reboot on config load/save, and added HIGHRES_ANALOGREAD to have better resolution when reading volume and flap potentiometers.
 //"3.3.3"  // 3/1/2023 Adaptive pitch filtering for smoother internal AHRS derived pitch angles, useful for IMU based calibration.
 //"3.3.2" // 1/29/2023 Fixed TAS formula, and added TAS to the log file.
 //"3.3.1" // 1/28/2023  Added functionality to read digital OAT sensor DS18B20 on Pin 9. To enable uncomment the #define OAT_AVAILABLE line. Needs two new libraries: OneWire.h  and DallasTemperature.h
