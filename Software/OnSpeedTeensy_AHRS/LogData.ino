@@ -13,7 +13,7 @@ if (sdLogging)
            charsAdded+=sprintf(logLine+charsAdded, ",%.2f,%.2f",OAT,smoothedTAS);
           #endif
           
-          charsAdded+= sprintf(logLine+charsAdded, ",%.2f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.2f,%.2f",imuTemp,Az,Ay,Ax,Gx,Gy,Gz,smoothedPitch,smoothedRoll);
+          charsAdded+= sprintf(logLine+charsAdded, ",%.2f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.2f,%.2f",imuTemp,Az,Ay,Ax,Gx,-Gy,Gz,smoothedPitch,smoothedRoll); // saving negative pitcharate to confirm to Vectrornav notation
           if (readBoom)
             { 
             boomAge=millis()-boomTimestamp;            

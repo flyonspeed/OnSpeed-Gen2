@@ -1,4 +1,9 @@
 const char htmlCalibration[] PROGMEM = R"=====(
+<style>
+body {font-family:'Open Sans',sans-serif}.graph .labels.x-labels{text-anchor:middle}.graph .labels.y-labels{text-anchor:end}
+.graph{height:350px;width:210px}.graph .grid{stroke:#ccc;stroke-dasharray:0;stroke-width:1}.labels{font-size:13px}.label-title{font-weight:700;font-size:12px;fill:#000}.data{fill:red;stroke-width:1}
+</style>
+<div id="content">
 <div style="float:left;margin-bottom:20px;width:350px">
   <br><b>Calibration Wizard</b><br><br>
   <div id="idStartInstructions">
@@ -14,10 +19,6 @@ const char htmlCalibration[] PROGMEM = R"=====(
     </div>  
   </div>
 </div>
-<style>
-body {font-family:'Open Sans',sans-serif}.graph .labels.x-labels{text-anchor:middle}.graph .labels.y-labels{text-anchor:end}
-.graph{height:350px;width:210px}.graph .grid{stroke:#ccc;stroke-dasharray:0;stroke-width:1}.labels{font-size:13px}.label-title{font-weight:700;font-size:12px;fill:#000}.data{fill:red;stroke-width:1}
-</style>
 <div id="maintable" style="display:table;margin-top:20px;width:350px">
       <div id="decelgauge" style="display:table-cell">   
           <svg version="1.2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="graph" aria-labelledby="title" role="img">
@@ -77,12 +78,16 @@ body {font-family:'Open Sans',sans-serif}.graph .labels.x-labels{text-anchor:mid
 </div>
 <div id="saveCalButtons" style="display: none;margin-left:40px">
 <br>
-<button type="submit" class="button" style="background-color:#42a7f5;" onClick="saveCalibration()">Save Calibration</button></span>
 <button type="submit" class="button" style="background-color:#42a7f5;" onClick="saveData()">Save data to File</button><br></span>
+<button type="submit" class="button" style="background-color:#42a7f5;" onClick="saveScreenshot()">Save Screenshot</button>
+<button type="submit" class="button" style="background-color:red;" onClick="saveCalibration()">Save Calibration</button></span>
+
 </div>
+<br>
 <br>
  <div id="CPchart" style="display:none">
  <div class="ct-chart" style="height:300px;display:block"> </div>
+</div>
 </div>
   <script>init()</script>
 )=====";

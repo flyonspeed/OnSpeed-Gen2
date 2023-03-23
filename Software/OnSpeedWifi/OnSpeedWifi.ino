@@ -29,12 +29,13 @@
 #include "css_chartist.h"
 #include "javascript_chartist1.h"
 #include "javascript_chartist2.h"
+#include "javascript_domvas.h"
 #include "javascript_regression.h"
 
 
 #define BAUDRATE_WIFI         1000000
 
-String wifi_fw="3.3.0"; // wifi firmware version
+String wifi_fw="3.3.6"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
@@ -606,10 +607,11 @@ void handleCalWizard()
             String ScssChartist=String(cssChartist);
             String SjsChartist1=String(jsChartist1);
             String SjsChartist2=String(jsChartist2);
+            String SjsDomvas=String(jsDomvas);
             String SjsCalibration=String(jsCalibration);
             String ShtmlCalibration=String(htmlCalibration);
                    
-            int contentLength=page.length()+SjsSGfilter.length()+SjsRegression.length()+ScssChartist.length()+SjsChartist1.length()+SjsChartist2.length()+SjsCalibration.length()+ShtmlCalibration.length()+pageFooter.length();
+            int contentLength=page.length()+SjsSGfilter.length()+SjsRegression.length()+ScssChartist.length()+SjsChartist1.length()+SjsChartist2.length()+SjsDomvas.length()+SjsCalibration.length()+ShtmlCalibration.length()+pageFooter.length();
             //server.sendHeader("Content-Length", (String)contentLength);
             server.setContentLength(CONTENT_LENGTH_UNKNOWN); // send content in chuncks, too large for String
             server.send(200, "text/html", "");
@@ -619,6 +621,7 @@ void handleCalWizard()
             server.sendContent(ScssChartist);
             server.sendContent(SjsChartist1);
             server.sendContent(SjsChartist2);
+            server.sendContent(SjsDomvas);
             server.sendContent(SjsCalibration);
             server.sendContent(ShtmlCalibration);
             server.sendContent(pageFooter);

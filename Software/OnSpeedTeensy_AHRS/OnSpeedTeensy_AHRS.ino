@@ -6,9 +6,10 @@
 //      and
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
-// NOTE: versions 3.3.1 and up are yet untested. Proceed with caution.
 
-#define VERSION "3.3.5" // fixed error in adaptive smoothing.
+#define VERSION "3.3.6" // added capability to save screenshots of calibration results on the Wifi interface, and confirm before saving calibration to settings. (wifi code also updated)
+                        // Wifi code is compiled, just upload OnSpeedWifi.ino.pico32.bin filen to upgrade to 3.3.6
+//"3.3.5" // fixed error in adaptive smoothing.
 //"3.3.4" //fixed reboot on config load/save, and added HIGHRES_ANALOGREAD to have better resolution when reading volume and flap potentiometers.
 //"3.3.3"  // 3/1/2023 Adaptive pitch filtering for smoother internal AHRS derived pitch angles, useful for IMU based calibration.
 //"3.3.2" // 1/29/2023 Fixed TAS formula, and added TAS to the log file.
@@ -330,7 +331,7 @@ volatile double coeffP; // coefficient of pressure
 #define SENSOR_INTERVAL 20000  // microsecond interval for sensor read (50hz)
 //#define SENSOR_INTERVAL 4201 // 238hz logging
 //#define REPLAY_INTERVAL 4201.680672268907563
-#define REPLAY_INTERVAL 4808
+#define REPLAY_INTERVAL 20000 // 4808 for 208hz
 #ifdef IMUTYPE_LSM9DS1
 #define IMU_INTERVAL    4200 // microseconds interval for IMU read
 #endif

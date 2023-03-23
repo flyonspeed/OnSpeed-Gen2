@@ -211,8 +211,8 @@ if ((in_max - in_min) + out_min ==0) return 0;
         flightData.Flightpath.push(flightPath);
         flightData.DecelRate.push(decelRate);
         
-        // Current trigger is 5 deg/sec in either direction AND a negative pitch angle.
-        if (Math.abs((pitchRate)) > 5 && PitchAngle<0) recordData(false);
+        // Current trigger is 5 deg/sec in either direction
+        if (Math.abs((pitchRate)) > 5) recordData(false);
         }
 
 
@@ -484,6 +484,9 @@ a.click();
 
 function saveCalibration()
 {
+const userAnswer = confirm("Confirm saving this calibration to system settings?");
+if (!userAnswer) return;
+  
 params="flapsPos="+flapsPosCalibrated+"&curve0="+resultCPtoAOA.equation[0]+"&curve1="+resultCPtoAOA.equation[1]+"&curve2="+resultCPtoAOA.equation[2]+"&LDmaxSetpoint="+LDmaxSetpoint+"&OSFastSetpoint="+OSFastSetpoint+"&OSSlowSetpoint="+OSSlowSetpoint+"&StallWarnSetpoint="+StallWarnSetpoint+"&ManeuveringSetpoint="+ManeuveringSetpoint+"&StallSetpoint="+StallSetpoint;
 var xhr = new XMLHttpRequest();
 xhr.open("POST", "/calwiz?step=save", true);
@@ -495,6 +498,31 @@ xhr.onreadystatechange = function() {//Call a function when the state changes.
     }
 }
 xhr.send(params);
+}
+
+function saveScreenshot()
+{
+  const width = document.documentElement.scrollWidth;
+  const height = document.documentElement.scrollHeight;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  var context = canvas.getContext('2d');
+
+    
+domvas.toImage(document.getElementById("content"), function() {
+      context.drawImage(this, 0, 0);
+      const link = document.createElement("a");
+      const imageURL = canvas.toDataURL("image/png"); 
+      link.href = imageURL;
+      const timestamp = new Date().toISOString();
+      link.download = 'calibration-flap'+flapsPos+'_'+calDate.toISOString().substring(0, 10)+'-'+calDate.getHours()+'_'+calDate.getMinutes()+'.png';
+
+      link.click();
+    });
+
 }
 
 </script>

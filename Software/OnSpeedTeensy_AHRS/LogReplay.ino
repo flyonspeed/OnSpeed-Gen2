@@ -116,9 +116,9 @@ while (SensorFile.available())
                  
                   dataMark=valueArray[10].toInt();
 
-                  kalmanVSI=valueArray[49].toFloat()/196.85;
+                  kalmanVSI=valueArray[56].toFloat()/196.85;
 
-                  imuIndex=12;                 
+                  imuIndex=14;                 
                   // get IMU values from log                 
                   Az=valueArray[imuIndex].toFloat(); // vertical G
                   Ay=valueArray[imuIndex+1].toFloat(); // lateralG
@@ -127,13 +127,16 @@ while (SensorFile.available())
                   Gy=valueArray[imuIndex+4].toFloat(); // pitch
                   Gz=valueArray[imuIndex+5].toFloat(); // yaw
 
-                  processAHRS();
+                  //processAHRS();
+                  smoothedPitch=valueArray[20].toFloat();
+                  smoothedRoll=valueArray[21].toFloat();
+                  flightPath=valueArray[55].toFloat();                  
                   
                   updateTones(); // generate tones   
 
                   //Serial.printf("%.2f,%.1f,%.2f,%.1f\n",smoothedPitch,efisPitch,smoothedRoll,efisRoll);
 
-                  Serial.printf("%.1f,%.1f\n",kalmanVSI,-vnVelNedDown);
+                  //Serial.printf("%.1f,%.1f\n",kalmanVSI,-vnVelNedDown);
                   //Serial.printf("%.2f,%.1f,%.2f,%.1f\n",smoothedPitch,efisPitch,smoothedRoll,efisRoll);
                   //Serial.printf("%.1f,%.1f,%.1f\n",AOA,derivedAOA,flightPath);
                   //Serial.printf("%.1f,%.1f\n",smoothedIAS,smoothedTAS);
