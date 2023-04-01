@@ -24,7 +24,7 @@ String clientwifi_password="test"; // currently not needed
 String dataSource = "SENSORS";
 
 // calibration wizard variables
-int acGrossWeight=1800;
-int acCurrentWeight=1577;
-float acVldmax=85;
-float acGlimit=4.4;
+int acGrossWeight=2700;
+int acCurrentWeight=2500;
+float acVldmax=91;
+float acGlimit=3.8;
