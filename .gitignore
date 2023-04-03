@@ -1,3 +1,5 @@
 .DS_Store
 *.bak
 Software\OnSpeedTeensy_AHRS\OnSpeedTeensy_AHRS.ino.TEENSY36.hex
+Software\OnSpeedTeensy_AHRS\local_config.h
+Software\OnSpeedWifi\local_config.h
