@@ -3,14 +3,16 @@
 // This file localizes values that are typically changed once for an installation
 // in a specific aircraft, and rarely touched again. 
 //
-// If you are contributing code back to the project, and you don't want to send changes
-// to this file back to the main repository, add the following line to your .gitignore file: 
-// Software\OnSpeedTeensy_AHRS\local_config.h
+// SETUP INSTRUCTIONS: (must be completed before compiling OnSpeedTeensy_AHRS.ino)
+// 1. Copy this file to local_config.h in the same directory
+// 2. Edit values below as appropriate to your installation & save changes
+// 3. With future updates to the main repository, compare your local_config.h to the 
+//    project's local_config-sample.h to determine if any new settings need to be added 
+//    to your local_config.h
 //
-// Alternatively, you can add the same line to .git/info/exclude & run the following command 
-// to ignore changes to this file locally, without polluting the project-wide .gitignore file: 
-// git update-index --skip-worktree Software\OnSpeedTeensy_AHRS\local_config.h
-// reference: https://stackoverflow.com/questions/1753070/how-do-i-configure-git-to-ignore-some-files-locally
+// If you are contributing code back to the project, your changes to this file will not be sent
+// to the main repository due to the following entry in the .gitignore file: 
+// Software\OnSpeedTeensy_AHRS\local_config.h
 //
 
 // data logging frequency
