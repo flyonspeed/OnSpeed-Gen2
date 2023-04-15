@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.3.6" // added capability to save screenshots of calibration results on the Wifi interface, and confirm before saving calibration to settings. (wifi code also updated)
+#define VERSION "3.3.7" // fixed dumb mistake of using TAS in kts instead of m/sec in the AHRS airspeed correction when OAT enabled.
+//"3.3.6" // added capability to save screenshots of calibration results on the Wifi interface, and confirm before saving calibration to settings. (wifi code also updated)
                         // Wifi code is compiled, just upload OnSpeedWifi.ino.pico32.bin filen to upgrade to 3.3.6
 //"3.3.5" // fixed error in adaptive smoothing.
 //"3.3.4" //fixed reboot on config load/save, and added HIGHRES_ANALOGREAD to have better resolution when reading volume and flap potentiometers.
@@ -458,6 +459,9 @@ volatile double coeffP; // coefficient of pressure
 #define FT2M    0.3048 // feet to meters
 #define M2FT    3.28084 // meters to feet
 #define MPS2FPM 196.85 // m/sec to fpm
+#define MPS2KTS 1.94384 // m/sec to fpm
+#define KTS2MPS 0.514444 // m/sec to fpm
+
 
 #define I2C_COMMUNICATION_TIMEOUT 2000  // microseconds
 
