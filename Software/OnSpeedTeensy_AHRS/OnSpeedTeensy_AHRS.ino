@@ -7,7 +7,8 @@
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
 
-#define VERSION "3.3.7" // fixed dumb mistake of using TAS in kts instead of m/sec in the AHRS airspeed correction when OAT enabled.
+#define VERSION "3.3.7a" // optimized AHRS parameters for better pitch performance during AOA calibration
+//"3.3.7" // fixed dumb mistake of using TAS in kts instead of m/sec in the AHRS airspeed correction when OAT enabled.
 //"3.3.6" // added capability to save screenshots of calibration results on the Wifi interface, and confirm before saving calibration to settings. (wifi code also updated)
                         // Wifi code is compiled, just upload OnSpeedWifi.ino.pico32.bin filen to upgrade to 3.3.6
 //"3.3.5" // fixed error in adaptive smoothing.
@@ -238,12 +239,12 @@ float calculatedGLimitNegative;
 int aoaSmoothing=20;  // AOA smoothing window (number of samples to lag)
 int pressureSmoothing=15; // median filter window for pressure smoothing/despiking
 
-const int accSmoothing=176; // accelerometer smoothing, Simple moving average
+const int accSmoothing=192; // accelerometer smoothing, Simple moving average
 const int imuTempSmoothing=20; // imu temperature smoothing, Simple moving average, 10 = 1 second
 //const int imuTempRateSmoothing=5; // imu temperature smoothing, Simple moving average
 const int gyroSmoothing=30; // gyro smoothing, Simple moving average
 const int compSmoothing=20; // acceleration compensation smoothing (linear and centripetal)
-const int iasSmoothing=136; // airspeed smoothing, 314 sample moving average for 208hz [optimized for ISM330 IMU]
+const int iasSmoothing=66; // airspeed smoothing, 66 sample moving average for 208hz [optimized for ISM330 IMU]
 const int tasSmoothing=10; //[optimized for ISM330 IMU]
 const int ahrsSmoothing=50; // ahrs smoothing, Exponential
 const int serialDisplaySmoothing=10; // smoothing serial display data (LateralG, verticalG)  10hz data.
