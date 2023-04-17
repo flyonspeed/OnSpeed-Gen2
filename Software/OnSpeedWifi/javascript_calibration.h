@@ -120,6 +120,7 @@ if ((in_max - in_min) + out_min ==0) return 0;
    OnSpeed.DecelRate= OnSpeedArray[19];
    OnSpeed.calSourceID= OnSpeedArray[20];
    OnSpeed.CRC= OnSpeedArray[21];
+   OnSpeed.Timestamp = new Date().getTime();
    
    var crc_string=OnSpeed.AOA+','+OnSpeed.Pitch+','+OnSpeed.Roll+','+OnSpeed.IAS+','+OnSpeed.PAlt+','+OnSpeed.verticalGLoad+','+OnSpeed.lateralGLoad+','+OnSpeed.alphaVA+','+OnSpeed.LDmax+','+OnSpeed.OnspeedFast+','+OnSpeed.OnspeedSlow+','+OnSpeed.OnspeedWarn+','+OnSpeed.flapsPos+','+OnSpeed.coeffP+','+OnSpeed.dataMark+','+OnSpeed.kalmanVSI+','+OnSpeed.flightPath+','+OnSpeed.PitchRate+','+OnSpeed.DecelRate+','+OnSpeed.calSourceID;
    var crc_calc=0;
@@ -210,6 +211,7 @@ if ((in_max - in_min) + out_min ==0) return 0;
         flightData.Pitch.push(PitchAngle);
         flightData.Flightpath.push(flightPath);
         flightData.DecelRate.push(decelRate);
+        flightData.Timestamp.push(OnSpeed.Timestamp);
         
         // Current trigger is 5 deg/sec in either direction
         if (Math.abs((pitchRate)) > 5) recordData(false);
@@ -265,7 +267,8 @@ if (on)
          flightData.smoothedCP=[];
          flightData.Pitch=[];
          flightData.Flightpath=[];
-         flightData.DecelRate=[];         
+         flightData.DecelRate=[];
+         flightData.Timestamp=[];         
         }
         else
             {
@@ -470,10 +473,10 @@ fileContent+=";CPtoAOACurve: "+CPtoAOAcurve+"\n";
 fileContent+=";CPtoAOAr2="+CPtoAOAr2+"\n";
 fileContent+=";\n";
 fileContent+=";Data:\n";
-fileContent+= "IAS,CP,DerivedAOA,Pitch,FlightPath,DecelRate\n";
+fileContent+= "Timestamp,IAS,CP,DerivedAOA,Pitch,FlightPath,DecelRate\n";
 for (i=0;i<=flightData.IAS.length-1 ;i++)
                 {
-                fileContent+=flightData.IAS[i]+","+flightData.CP[i]+","+flightData.DerivedAOA[i]+","+flightData.Pitch[i]+","+flightData.Flightpath[i]+","+flightData.DecelRate[i]+"\n";
+                fileContent+=flightData.Timestamp[i]+","+flightData.IAS[i]+","+flightData.CP[i]+","+flightData.DerivedAOA[i]+","+flightData.Pitch[i]+","+flightData.Flightpath[i]+","+flightData.DecelRate[i]+"\n";
                 }
 var bb = new Blob([fileContent ], { type: 'application/csv' });
 var a = document.createElement('a');

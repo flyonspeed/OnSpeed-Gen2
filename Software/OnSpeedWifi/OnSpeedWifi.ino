@@ -35,7 +35,7 @@
 
 #define BAUDRATE_WIFI         1000000
 
-String wifi_fw="3.3.6"; // wifi firmware version
+String wifi_fw="3.3.7"; // wifi firmware version
 
 const char* ssid = "OnSpeed";
 const char* password = "angleofattack";
