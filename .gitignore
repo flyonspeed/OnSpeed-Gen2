@@ -1,5 +1,5 @@
 .DS_Store
-.DS_Store
-Software/.DS_Store
-Software/Arduino/.DS_Store
-Software/Arduino/libraries/.DS_Store
+*.bak
+Software\OnSpeedTeensy_AHRS\OnSpeedTeensy_AHRS.ino.TEENSY36.hex
+Software\OnSpeedTeensy_AHRS\local_config.h
+Software\OnSpeedWifi\local_config.h

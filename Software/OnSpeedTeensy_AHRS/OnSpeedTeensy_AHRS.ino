@@ -97,23 +97,7 @@
                          
 #define DEFAULT_CONFIG  default_config
 
-// data logging frequency
-#define LOGDATA_PRESSURE_RATE
-//#define LOGDATA_IMU_RATE
-
-// AOA probe type
-//#define SPHERICAL_PROBE // uncomment this if using custom OnSpeed spherical head probe.
-
-// imu type
-//#define IMUTYPE_LSM9DS1  // original IMU
-#define IMUTYPE_ISM330DHCX // new IMU with less temperature drift
-
-// boom type
-//#define NOBOOMCHECKSUM    // for booms that don't have a checksum byte in their data stream uncomment this line.
-
-// curves config
-#define MAX_AOA_CURVES    5 // maximum number of AOA curves (flap/gear positions)
-#define MAX_CURVE_COEFF   4 // 4 coefficients=3rd degree polynomial function for calibration curves
+#include "local_config.h"
 
 // glimit settings
 #define GLIMIT_REPEAT_TIMEOUT   3000 // milliseconds to repeat G limit.
@@ -126,9 +110,6 @@
 #else
   #define PCOEFF(p_fwd,p_45)  p_45/p_fwd; // CP3 // ratiometric CP. CP1 & CP2 are not ratiometric. Can't divide with P45, it goes through zero on Dynon probe.
 #endif
-
-// OAT sensor available
-//#define OAT_AVAILABLE  // DS18B20 sensor on pin 9
 
 // boom curves
 //#define BOOM_ALPHA_CALC(x)      7.0918*pow(10,-13)*x*x*x*x - 1.1698*pow(10,-8)*x*x*x + 7.0109*pow(10,-5)*x*x - 0.21624*x + 310.21; //degrees
@@ -146,16 +127,6 @@
 // serial data packet size
 #define BOOM_PACKET_SIZE  50
 #define EFIS_PACKET_SIZE 512
-
-//analog resolution (use 13 bit analog resolution, default is 10-bit)
-//#define HIGHRES_ANALOGREAD
-
-// box functionality config
-//String dataSource = "TESTPOT"; // potentiometer wiper on Pin 10 of DSUB 15 connector
-//String dataSource = "RANGESWEEP";
-String dataSource = "SENSORS";
-//String dataSource = "REPLAYLOGFILE";
-String replayLogFileName=""; 
 
 // type definitions
 typedef struct  {

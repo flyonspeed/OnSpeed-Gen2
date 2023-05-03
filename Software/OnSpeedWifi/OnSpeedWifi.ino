@@ -37,10 +37,7 @@
 
 String wifi_fw="3.3.7"; // wifi firmware version
 
-const char* ssid = "OnSpeed";
-const char* password = "angleofattack";
-String clientwifi_ssid="HangarWifi"; // currently not needed
-String clientwifi_password="test"; // currently not needed
+#include "local_config.h"
 
 // initialize live display values
 float AOA=0.0;
@@ -68,11 +65,6 @@ String pageFooter="</body></html>";
 String uploadConfigString;
 DNSServer dnsServer;
 WebServer server(80);
-
-// initialize config variables
-#define MAX_AOA_CURVES    5 // maximum number of AOA curves (flap/gear positions)
-#define MAX_CURVE_COEFF   4 // 4 coefficients=3rd degree polynomial function for calibration curves
-String dataSource = "SENSORS";
 
 String replayLogFileName = "";
 
@@ -164,15 +156,7 @@ bool sdLogging; //not used here
 
 String teensyVersion="";
 
-
-// calibration wizard variables
-int acGrossWeight=2700;
-int acCurrentWeight=2500;
-float acVldmax=91;
-float acGlimit=3.8;
-
 #include <Onspeed-settingsFunctions.h> // library with setting functions
-
 
 void updateHeader()
 {

@@ -1,3 +1,14 @@
+//
+// If you are contributing code back to the project, and you don't want to send changes
+// to this file back to the main repository, add the following line to your .gitignore file: 
+// Software\OnSpeedTeensy_AHRS\default_config.h
+//
+// Alternatively, you can add the same line to .git/info/exclude & run the following command 
+// to ignore changes to this file locally, without polluting the project-wide .gitignore file: 
+// git update-index --skip-worktree Software\OnSpeedTeensy_AHRS\default_config.h
+// reference: https://stackoverflow.com/questions/1753070/how-do-i-configure-git-to-ignore-some-files-locally
+//
+
 // **** default config for RV-4 ****
 const char default_config[] PROGMEM = R"=====(
 <CONFIG>
