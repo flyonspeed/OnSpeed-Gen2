@@ -10,7 +10,7 @@ if (sdLogging)
           charsAdded+=sprintf(logLine, "%lu,%i,%.2f,%i,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%i",timeStamp,Pfwd,PfwdSmoothed,P45,P45Smoothed,Pstatic,Palt,IAS,AOA,flapsPos,dataMark);
           //charsAdded+=sprintf(logLine, "%lu,%i,%.2f,%i,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%i",timeStamp,124,124.56,145,145.00,1013.00,5600.00,110.58,10.25,2,0);
           #ifdef OAT_AVAILABLE
-           charsAdded+=sprintf(logLine+charsAdded, ",%.2f,%.2f",OAT,smoothedTAS);
+           charsAdded+=sprintf(logLine+charsAdded, ",%.2f,%.2f",OAT,smoothedTAS*MPS2KTS);
           #endif
           
           charsAdded+= sprintf(logLine+charsAdded, ",%.2f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.2f,%.2f",imuTemp,Az,Ay,Ax,Gx,-Gy,Gz,smoothedPitch,smoothedRoll); // saving negative pitcharate to confirm to Vectrornav notation

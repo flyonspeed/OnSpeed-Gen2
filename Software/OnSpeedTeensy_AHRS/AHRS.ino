@@ -12,11 +12,11 @@ void processAHRS()
   float ISA_temp_k=15-Temp_rate*Palt+Kelvin;
   float OAT_k= OAT + Kelvin;
   float DA = Palt+(ISA_temp_k/Temp_rate)*(1-pow(ISA_temp_k/OAT_k,0.2349690));
-  TASAvg.addValue(IAS/pow(1-6.8755856*pow(10,-6) * DA,2.12794)); // formulas from https://edwilliams.org/avform147.htm#Mach   
+  TASAvg.addValue(KTS2MPS*IAS/pow(1-6.8755856*pow(10,-6) * DA,2.12794)); // formulas from https://edwilliams.org/avform147.htm#Mach   // m/sec
   #else
-  TASAvg.addValue(IAS*(1+ Palt / 1000 * 0.02) * 0.514444);
+  TASAvg.addValue(IAS*(1+ Palt / 1000 * 0.02) * KTS2MPS); // m/sec
   #endif
-  smoothedTAS=TASAvg.getFastAverage();
+  smoothedTAS=TASAvg.getFastAverage(); // m/sec
   
   // update AHRS           
 
@@ -52,7 +52,7 @@ void processAHRS()
                   
   // calculate linear acceleration compensation
   // correct for forward acceleration
-  float aFwdCp=smoothedIASdiff * 0.514444/(1/imuSampleRate) * MPS2G; // knots to m/sec, 1/208hz (update rate), m/sec2 to g
+  float aFwdCp=smoothedIASdiff * KTS2MPS/(1/imuSampleRate) * MPS2G; // knots to m/sec, 1/208hz (update rate), m/sec2 to g
   //centripetal acceleration in m/sec2 = speed in m/sec * angular rate in radians
   float aLatCp=smoothedTAS * yawRateCorr * DEG2RAD * MPS2G;
   float aVertCp=smoothedTAS * pitchRateCorr * DEG2RAD * MPS2G; // TAS knots to m/sec, pitchrate in radians, m/sec2 to g
@@ -81,7 +81,7 @@ void processAHRS()
                       
   // calculate smoothed pitch
   float ahrsSmoothingAlpha=2.0/(ahrsSmoothing+1);
-  float ahrsPitchSmoothingAlpha=ahrsSmoothingAlpha*abs(gPitch)*0.3; // use smoothed pitch (Yaxis) gyroscope for adaptive pitch output filtering
+  float ahrsPitchSmoothingAlpha=ahrsSmoothingAlpha*abs(gPitch)*0.4; // use smoothed pitch (Yaxis) gyroscope for adaptive pitch output filtering
   ahrsPitchSmoothingAlpha=constrain(ahrsPitchSmoothingAlpha,0.001,1);
   
   smoothedPitch= -filter.getPitch() * ahrsPitchSmoothingAlpha+(1-ahrsPitchSmoothingAlpha)*smoothedPitch;
