@@ -2,7 +2,7 @@ void Check3DAudio()
 {
   float smoothingFactor=0.1;
   float curveGain;
-  float lateralG=aLat;
+  float lateralG=aLatCorr;
   int signLateralG= (lateralG > 0) - (lateralG < 0);
   curveGain=AUDIO_3D_CURVE(abs(lateralG));
   if (curveGain>1) curveGain=1;

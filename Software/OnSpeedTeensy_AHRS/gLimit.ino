@@ -9,7 +9,7 @@ if (gRoll>=ASYMMETRIC_GYRO_LIMIT || gYaw>=ASYMMETRIC_GYRO_LIMIT)
         calculatedGLimitPositive=loadLimitPositive;
         calculatedGLimitNegative=loadLimitNegative;
         }
-if (aVert >= calculatedGLimitPositive || aVert <= calculatedGLimitNegative)
+if (aVertCorr >= calculatedGLimitPositive || aVertCorr <= calculatedGLimitNegative)
   {
   gLimitLastWarning=millis();  
   voice1.play(AudioSampleGlimit);

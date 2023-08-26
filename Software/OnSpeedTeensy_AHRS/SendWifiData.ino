@@ -1,30 +1,19 @@
 void SendWifiData()
 {
- char json_buffer[285];
- char crc_buffer[250];
- byte CRC=0;
  // gloads changed by the IMU interrupt
- float accelSumSq=aVert*aVert+aLat*aLat+aFwd*aFwd;
- float verticalGload=sqrt(abs(accelSumSq));
- verticalGload=round(verticalGload * 10.0) / 10.0; // round to 1 decimal place
- if (aVert<0) verticalGload*=-1;
+ // accelerometrs are being updated in an interrupr
+accelSumSq=aVertCorr*aVertCorr+aLatCorr*aLatCorr+aFwdCorr*aFwdCorr;
+verticalGload=sqrt(abs(accelSumSq));
+verticalGload=round(verticalGload * 10.0) / 10.0; // round to 1 decimal place
+if (aVertCorr<0) verticalGload*=-1;
  
- float wifiAOA;
- float alphaVA=0.00;
- float wifiPitch=0;
- float wifiRoll=0;
- float wifiFlightpath=0;
- float wifiVSI=0;
- float wifiIAS=0;
- int calSourceID;
- 
- if (isnan(AOA) || IAS<muteAudioUnderIAS)
+if (isnan(AOA) || IAS<muteAudioUnderIAS)
     {
     wifiAOA=-100;
     }
     else
         {
-        // protect AOA from interrupts overwriting it  
+        // protect AOA from interrupts overwriting it
         wifiAOA=AOA;
         }
 
@@ -33,51 +22,67 @@ void SendWifiData()
 
 if (calSource=="EFIS")
   {
+
+   // efis or VN-300 data 
   calSourceID=efisID; // send efis type to Wifi 
   if (efisID==1)
      {
      // use Vectornav data
      wifiPitch=vnPitch;
      wifiRoll=vnRoll;
-     if (smoothedTAS>0)
+     if (TAS>0)
                       {
-                      wifiFlightpath=asin(-vnVelNedDown/smoothedTAS) * RAD2DEG; // convert efiVSI from fpm to m/s, vnVelNedDown is reversed (positive when descending)
-                      } else wifiFlightpath=0;     
+                      //TAS is being updated in an interrupt  
+                      wifiFlightpath=asin(-vnVelNedDown/TAS) * RAD2DEG; // vnVelNedDown is reversed (positive when descending)
+                      } else wifiFlightpath=0;
                      
-     wifiVSI=-vnVelNedDown*196.85; // fpm
+     wifiVSI=-vnVelNedDown*MPS2FPM; // fpm
+     wifiIAS=IAS; // IAS is being updated in an interrupt
      } else
             {
             //use parsed efis data
             wifiPitch=efisPitch;
             wifiRoll=efisRoll;
-            if (smoothedTAS>0)
+            if (efisTAS>0)
                       {
-                      wifiFlightpath=asin(efisVSI*0.00508/smoothedTAS) * RAD2DEG; // convert efiVSI from fpm to m/s
-                      } else wifiFlightpath=0;
-            wifiVSI=efisVSI;          
+                      //if efisTAS available
+                      // kalmanVSI is being updated in an interrupt
+                      wifiFlightpath=asin(kalmanVSI/efisTAS*KTS2MPS) * RAD2DEG; // convert efiVSI from fpm to m/s
+                      } else
+                            if (TAS>0)
+                                {
+                                // if TAS available
+                                //TAS is being updated in an interrupt
+                                wifiFlightpath=asin(kalmanVSI/TAS) * RAD2DEG; // convert efiVSI from fpm to m/s
+                                } else wifiFlightpath=0;
+            // kalmanVSI is being updated in an interrupt  
+            wifiVSI=kalmanVSI*MPS2FPM;
+            wifiIAS=efisIAS;
             }             
- // send efisIAS if spherical probe is in use otherwise use OnspeedIAS.        
- #ifdef SPHERICAL_PROBE
- wifiIAS=efisIAS;
- #else
- wifiIAS=IAS;
- #endif           
+         
   
   }
    else
         {
-        calSourceID=0;  
+        // internal data  
+        calSourceID=0;
+        // these values are being updated in an interrupt 
         wifiPitch=smoothedPitch; // degrees
         wifiRoll=smoothedRoll; // degrees
         wifiFlightpath=flightPath; // degrees
         wifiVSI=kalmanVSI*MPS2FPM; // fpm
-        wifiIAS=IAS;
+         // send efisIAS if spherical probe is in use otherwise use OnspeedIAS.        
+ #ifdef SPHERICAL_PROBE
+        wifiIAS=efisIAS;
+ #else
+        wifiIAS=IAS; //IAS is being updated in an interrupt
+ #endif  
         }
-      
+unsigned int CRC_len=sprintf(crc_buffer,"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%.6f,%i,%.2f,%.2f,%.2f,%.2f,%i",wifiAOA,wifiPitch,wifiRoll,wifiIAS,kalmanAlt*M2FT,verticalGload,aLatCorr,alphaVA,LDmaxAOA,onSpeedAOAfast,onSpeedAOAslow,stallWarningAOA,flapsPos,coeffP,dataMark,wifiVSI,wifiFlightpath,gPitch,DecelRate,calSourceID);
+CRC=0;
+for (unsigned int i=0;i<CRC_len;i++) CRC=CRC+char(crc_buffer[i]); // calculate simple CRC
+Serial4.print("$ONSPEED,");
+Serial4.print(crc_buffer);
+Serial4.printf(",%i\n",CRC);
 
-
- sprintf(crc_buffer,"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%i,%.6f,%i,%.2f,%.2f,%.2f,%.2f,%i",wifiAOA,wifiPitch,wifiRoll,wifiIAS,kalmanAlt*M2FT,verticalGload,aLat,alphaVA,LDmaxAOA,onSpeedAOAfast,onSpeedAOAslow,stallWarningAOA,flapsPos,coeffP,dataMark,wifiVSI,wifiFlightpath,gPitch,DecelRate,calSourceID);
- for (unsigned int i=0;i<strlen(crc_buffer);i++) CRC=CRC+char(crc_buffer[i]); // claculate simple CRC
- sprintf(json_buffer,"$ONSPEED,%s,%i\n",crc_buffer,CRC);
- Serial4.print(json_buffer);
- }
+}

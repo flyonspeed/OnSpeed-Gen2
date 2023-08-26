@@ -40,41 +40,52 @@ while (SensorFile.available())
                     //Serial.println();
                    // skip CSV header line
                  if (lineCount==0)
-                 {  
-                   if (valueArray[0].indexOf("timeStamp")>=0)
-                       {
-                       Serial.println("Skipping header in logfile.");
-                      // find efisLaterG column index (if boom is available it will be offset by 6 columns)
-//                      for (int i=0;i<valueIndex;i++)
-//                          {
-//                          if (valueArray[i].indexOf("efisLateralG")>=0)
-//                              {
-//                              efisLateralGColumn=i;
-//                              break;
-//                              }
-//                          }
-//                       for (int i=0;i<valueIndex;i++)
-//                          {
-//                          if (valueArray[i].indexOf("VerticalG")>=0)
-//                              {
-//                              imuIndex=i;
-//                              break;
-//                              }
-//                          }
-                      lineCount++;                             
-                      return; // skip if log header;
-                       }
-                 }                       
+                     {
+                      totalColumns=valueIndex;  
+                      if (findColumnIndex("timeStamp",valueArray,totalColumns)==-1)
+                          {
+                          Serial.println("No header in logfile. Can't replay.");
+                          return;
+                          }
+                      // get all column indexes
+                      idxPfwdSmoothed=findColumnIndex("PfwdSmoothed",valueArray,totalColumns);
+                      idxP45Smoothed=findColumnIndex("P45Smoothed",valueArray,totalColumns);
+                      idxflapsPos=findColumnIndex("flapsPos",valueArray,totalColumns);
+                      idxPalt=findColumnIndex("Palt",valueArray,totalColumns);
+                      idxIAS=findColumnIndex("IAS",valueArray,totalColumns);
+                      idxdataMark=findColumnIndex("DataMark",valueArray,totalColumns);
+                      idxkalmanVSI=findColumnIndex("VSI",valueArray,totalColumns);
+                      idxAz=findColumnIndex("VerticalG",valueArray,totalColumns);
+                      idxAy=findColumnIndex("LateralG",valueArray,totalColumns);
+                      idxAx=findColumnIndex("ForwardG",valueArray,totalColumns);
+                      idxGx=findColumnIndex("RollRate",valueArray,totalColumns);
+                      idxGy=findColumnIndex("PitchRate",valueArray,totalColumns);
+                      idxGz=findColumnIndex("YawRate",valueArray,totalColumns);
+                      idxsmoothedPitch=findColumnIndex("Pitch",valueArray,totalColumns);
+                      idxsmoothedRoll=findColumnIndex("Roll",valueArray,totalColumns);
+                      idxflightPath=findColumnIndex("FlightPath",valueArray,totalColumns);
+//                     Serial.printf("%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i",
+//  idxPfwdSmoothed, idxP45Smoothed, idxflapsPos, idxPalt, idxIAS,
+//  idxdataMark, idxkalmanVSI, idxAz, idxAy, idxAx, idxGx, idxGy,
+//  idxGz, idxsmoothedPitch, idxsmoothedRoll);
+
+                          
+                      
+                       if (valueArray[0].indexOf("timeStamp")>=0)
+                           {
+                           Serial.println("Skipping header in logfile.");
+                           lineCount++;                             
+                           return; // skip if log header;
+                           }
+                     }             
                   lineCount++;
                   // simulate a sensor read cycle
-                  //Pfwd=valueArray[1].toInt(); // bias already removed                  
-                  PfwdSmoothed=valueArray[2].toFloat();                  
-                  //P45=valueArray[3].toInt(); // bias already removed
-                  P45Smoothed=valueArray[4].toFloat();
+                  PfwdSmoothed=valueArray[idxPfwdSmoothed].toFloat();
+                  P45Smoothed=valueArray[idxP45Smoothed].toFloat();
 
                   coeffP=PCOEFF(PfwdSmoothed,P45Smoothed);
                   
-                  flapsPos=valueArray[9].toInt();                  
+                  flapsPos=valueArray[idxflapsPos].toInt();                  
                   for (int i=0; i < flapDegrees.Count;i++)
                     {
                     if (flapsPos==flapDegrees.Items[i])
@@ -84,57 +95,62 @@ while (SensorFile.available())
                           }                        
                     }
 
-                  Palt=valueArray[6].toFloat();
+                  Palt=valueArray[idxPalt].toFloat();
                     
                   setAOApoints(flapsIndex);                                    
                   calcAOA(PfwdSmoothed,P45Smoothed); // calculate AOA based on Pfwd divided by non-bias-corrected P45;                
 
                   // efis lateralG
-                  efisLateralG=valueArray[27].toFloat()*0.101972; // vnLateral g in m/sec^2
+                  //efisLateralG=valueArray[23].toFloat()*0.101972; // vnLateral g in m/sec^2
 
                   // efisPitch
-                  efisPitch=valueArray[30].toFloat(); // vnPitch
+                  //efisPitch=valueArray[21].toFloat(); // vnPitch
 
                   // efisRoll
-                  efisRoll=valueArray[31].toFloat(); // vnRoll
+                  //efisRoll=valueArray[22].toFloat(); // vnRoll
 
                   //efisPalt
-                  efisPalt=valueArray[6].toFloat();
+                  //efisPalt=valueArray[26].toFloat();
 
 
                   //VN attitude and VSI
-                  vnPitch=valueArray[30].toFloat();
-                  vnRoll=valueArray[31].toFloat();
-                  vnVelNedDown=valueArray[40].toFloat();
+                  //vnPitch=valueArray[38].toFloat();
+                  //vnRoll=valueArray[39].toFloat();
+                  //vnVelNedDown=valueArray[48].toFloat();
                   
                   
                   // get airspeed
-                  IAS=valueArray[7].toFloat();
+                  IAS=valueArray[idxIAS].toFloat();
+                  //efisIAS=valueArray[20].toFloat();
+                  //efisTAS=valueArray[28].toFloat();
                   // update TAS
-                  TASAvg.addValue((IAS+IAS * Palt / 1000 * 0.02) * 0.514444); // ballpark TAS 2% per thousand feet pressure altitude, in m/sec
-                  smoothedTAS=TASAvg.getFastAverage();
+                  //TASAvg.addValue((IAS+IAS * Palt / 1000 * 0.02) * 0.514444); // ballpark TAS 2% per thousand feet pressure altitude, in m/sec
+                  //smoothedTAS=TASAvg.getFastAverage();
+                  //TAS=valueArray[12].toFloat() * 0.514444;
                  
-                  dataMark=valueArray[10].toInt();
+                  dataMark=valueArray[idxdataMark].toInt();
 
-                  kalmanVSI=valueArray[56].toFloat()/196.85;
+                  kalmanVSI=valueArray[idxkalmanVSI].toFloat()/196.85;
 
-                  imuIndex=14;                 
+                  //efisVSI=valueArray[27].toInt();
                   // get IMU values from log                 
-                  Az=valueArray[imuIndex].toFloat(); // vertical G
-                  Ay=valueArray[imuIndex+1].toFloat(); // lateralG
-                  Ax=valueArray[imuIndex+2].toFloat(); // forward G
-                  Gx=valueArray[imuIndex+3].toFloat(); // roll
-                  Gy=valueArray[imuIndex+4].toFloat(); // pitch
-                  Gz=valueArray[imuIndex+5].toFloat(); // yaw
+                  Az=valueArray[idxAz].toFloat(); // vertical G
+                  Ay=valueArray[idxAy].toFloat(); // lateralG
+                  Ax=valueArray[idxAx].toFloat(); // forward G
+                  Gx=valueArray[idxGx].toFloat(); // roll
+                  Gy=-valueArray[idxGy].toFloat(); // pitch (reversed in log file)
+                  Gz=valueArray[idxGz].toFloat(); // yaw
 
                   //processAHRS();
-                  smoothedPitch=valueArray[20].toFloat();
-                  smoothedRoll=valueArray[21].toFloat();
-                  flightPath=valueArray[55].toFloat();                  
+                  smoothedPitch=valueArray[idxsmoothedPitch].toFloat();
+                  smoothedRoll=valueArray[idxsmoothedRoll].toFloat();
+                  flightPath=valueArray[idxflightPath].toFloat();
+                  aLatCorr=Ay;
+                  aVertCorr=Az;
                   
                   updateTones(); // generate tones   
 
-                  //Serial.printf("%.2f,%.1f,%.2f,%.1f\n",smoothedPitch,efisPitch,smoothedRoll,efisRoll);
+                  //Serial.printf("%.1f,%.1f\n",smoothedPitch,vnPitch);
 
                   //Serial.printf("%.1f,%.1f\n",kalmanVSI,-vnVelNedDown);
                   //Serial.printf("%.2f,%.1f,%.2f,%.1f\n",smoothedPitch,efisPitch,smoothedRoll,efisRoll);
@@ -154,7 +170,7 @@ while (SensorFile.available())
 //                  Serial.print(",AOA: ");
 //                  Serial.print(AOA);
 //                  Serial.print(", Pitch: ");
-//                  Serial.print(smoothedPitch);
+//                  Serial.println(smoothedPitch);
 //                  Serial.print(", efisPitch: ");
 //                  Serial.print(efisPitch);
 //                  Serial.print(",Palt: ");
@@ -188,6 +204,18 @@ while (SensorFile.available())
           LogReplayTimer.end();
           updateTones(); // to turn off tone at the end;
       
+}
+
+int findColumnIndex(String columnName,String (&valueArray)[60], int totalColumns)
+{
+ for (int i=0;i<=totalColumns;i++)
+    {
+    if (valueArray[i].trim()==columnName)
+        {
+        return i;
+        }
+    }
+ return -1;   
 }
 
 void PotRead()
@@ -238,6 +266,7 @@ for (int i=0; i<5;i++)
     adcvalue+=analogRead(FLAP_PIN);
     }
 adcvalue=adcvalue/5;
-return constrain(mapfloat(adcvalue, 47, 138, 0, 20),0,20);
+
+return constrain(mapfloat(adcvalue, 57, 187, 0, 20),0,20);
 
 }

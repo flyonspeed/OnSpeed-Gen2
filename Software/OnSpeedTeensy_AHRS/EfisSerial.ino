@@ -173,10 +173,9 @@ if (readEfisData)
                              uint8_t vnSec=uint8_t(vnBuffer[73]);
                              //uint16_t vnFracSec=(vnBuffer[75] << 8) | vnBuffer[74]; // gps fractional seconds only update at GPS update rates, 5Hz. We'll calculate our own
                              // calculate fractional seconds 1/100
-                             String vnFracSec=String(int(millis()/10));
+                             vnFracSec=String(int(millis()/10));
                              vnFracSec=vnFracSec.substring(vnFracSec.length()-2);
                              vnTimeUTC=String(vnHour)+":"+String(vnMin)+":"+String(vnSec)+"."+vnFracSec;
-
                              vnGPSFix=vnBuffer[76];
                              vnGnssVelNedNorth=array2float(vnBuffer,77);
                              vnGnssVelNedEast=array2float(vnBuffer,81);

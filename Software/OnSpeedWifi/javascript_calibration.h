@@ -6,6 +6,9 @@ const char jsCalibration[] PROGMEM = R"=====(
  var OSFastMultiplier=1.35;
  var OSSlowMultiplier=1.25;
  var StallWarnMargin=5; // knots
+ var aoaSmoothing=.75; // .9999 full smoothing, 0 = no smooting
+ var cpSmoothing=.75; 
+ var iasSmoothing=.75;
  var LDmaxIAS=100; // will be calculated later based on flap position
  var AOA=0;
  var IASsmoothed=0;
@@ -37,6 +40,7 @@ const char jsCalibration[] PROGMEM = R"=====(
  flightData.PitchRate=[];
  flightData.smoothedIAS=[];
  flightData.smoothedCP=[];
+ flightData.smoothedDerivedAOA=[];
  flightData.Pitch=[];
  flightData.Flightpath=[];
  flightData.DecelRate=[];
@@ -265,6 +269,7 @@ if (on)
          flightData.PitchRate=[];
          flightData.smoothedIAS=[];
          flightData.smoothedCP=[];
+         flightData.smoothedDerivedAOA=[];  
          flightData.Pitch=[];
          flightData.Flightpath=[];
          flightData.DecelRate=[];
@@ -279,17 +284,20 @@ if (on)
             flapsPosCalibrated=flapsPos;
             flightData.smoothedIAS[0]=flightData.IAS[0];
             flightData.smoothedCP[0]=flightData.CP[0];
+            flightData.smoothedDerivedAOA[0]=flightData.DerivedAOA[0];
             var stallCP=0;
             stallIAS=100;
             var stallIndex=0;
             for (i=1;i<flightData.IAS.length;i++)
                 {
-                flightData.smoothedIAS[i]=flightData.IAS[i]*.98+flightData.smoothedIAS[i-1]*.02;
-                flightData.smoothedCP[i]=flightData.CP[i]*.90+flightData.smoothedCP[i-1]*.10;
-                if (flightData.smoothedCP[i]>stallCP)
+                flightData.smoothedIAS[i]=flightData.IAS[i]*(1-iasSmoothing)+flightData.smoothedIAS[i-1]*iasSmoothing;
+                flightData.smoothedCP[i]=flightData.CP[i]*(1-cpSmoothing)+flightData.smoothedCP[i-1]*cpSmoothing;
+                flightData.smoothedDerivedAOA[i]=flightData.DerivedAOA[i]*(1-aoaSmoothing)+flightData.smoothedDerivedAOA[i-1]*aoaSmoothing;
+                if (flightData.CP[i]>stallCP)
                     {
-                    stallCP=flightData.smoothedCP[i];
-                    stallIAS=flightData.smoothedIAS[i];
+                    // determine stall IAS and CP based on instantaneous values
+                    stallCP=flightData.CP[i];
+                    stallIAS=flightData.IAS[i];
                     stallIndex=i;
                     }
                 }
@@ -304,8 +312,8 @@ if (on)
             var dataIAS=[]; // IAS linear regression to verify that IAS is decreasing
             for (i=0;i<=stallIndex;i++)
                 {
-                dataCPtoAOA.push([flightData.smoothedCP[i],flightData.DerivedAOA[i]]);
-                dataIAStoAOA.push([flightData.IAS[i],flightData.DerivedAOA[i]]);
+                dataCPtoAOA.push([flightData.smoothedCP[i],flightData.smoothedDerivedAOA[i]]);
+                dataIAStoAOA.push([flightData.IAS[i],flightData.smoothedDerivedAOA[i]]);
                 dataIAS.push([i,flightData.IAS[i]]);
                 }
             const resultIAS = regression.polynomial(dataIAS, { order: 1, precision:2 });   
@@ -358,7 +366,7 @@ if (on)
                               {
                               dataPoint=new Object();
                               dataPoint.x=flightData.smoothedCP[i];
-                              dataPoint.y=flightData.DerivedAOA[i];
+                              dataPoint.y=flightData.smoothedDerivedAOA[i];
                               chartData.series[0].data.push(dataPoint);
                               dataPoint=new Object();
                               dataPoint.x=flightData.smoothedCP[i];
@@ -473,10 +481,10 @@ fileContent+=";CPtoAOACurve: "+CPtoAOAcurve+"\n";
 fileContent+=";CPtoAOAr2="+CPtoAOAr2+"\n";
 fileContent+=";\n";
 fileContent+=";Data:\n";
-fileContent+= "Timestamp,IAS,CP,DerivedAOA,Pitch,FlightPath,DecelRate\n";
+fileContent+= "Timestamp,IAS,CP,smoothedCP,DerivedAOA,smoothedDerivedAOA,Pitch,FlightPath,DecelRate\n";
 for (i=0;i<=flightData.IAS.length-1 ;i++)
                 {
-                fileContent+=flightData.Timestamp[i]+","+flightData.IAS[i]+","+flightData.CP[i]+","+flightData.DerivedAOA[i]+","+flightData.Pitch[i]+","+flightData.Flightpath[i]+","+flightData.DecelRate[i]+"\n";
+                fileContent+=flightData.Timestamp[i]+","+flightData.IAS[i]+","+flightData.CP[i]+","+flightData.smoothedCP[i]+","+flightData.DerivedAOA[i]+","+flightData.smoothedDerivedAOA[i]+","+flightData.Pitch[i]+","+flightData.Flightpath[i]+","+flightData.DecelRate[i]+"\n";
                 }
 var bb = new Blob([fileContent ], { type: 'application/csv' });
 var a = document.createElement('a');

@@ -1,4 +1,91 @@
-void readBoomSerial()
+void readBoomSerial() {
+  if (readBoom) {
+    int packetCount=0;
+    while (Serial1.available()>0 && packetCount < BOOM_PACKET_SIZE) {
+      char serialBoomChar = Serial1.read();
+      #ifdef BOOMDATADEBUG
+      Serial.print(serialBoomChar);
+      #endif
+      packetCount++;
+      lastReceivedBoomTime=millis();
+      
+      // Prevent buffer overflow
+      if (boomBufferLength >= BOOM_BUFFER_SIZE - 1) {
+        boomBufferLength = 0;
+      }
+      
+      if ((boomBufferLength > 0 || serialBoomChar == '$')) {
+        if (serialBoomChar == '\n') {
+          // Ensure the string is null-terminated
+          boomBuffer[boomBufferLength] = '\0';
+          
+          if (boomBuffer[0] == '$' && boomBufferLength >= 21) {
+            boomTimestamp=millis();
+            
+            // CRC checking
+            #ifndef NOBOOMCHECKSUM
+                int calcCRC = 0;
+                for (int i = 0; i < boomBufferLength - 4; i++) {
+                  calcCRC += boomBuffer[i];
+                }
+                calcCRC = calcCRC & 0xFF;
+            
+                // Extract CRC from buffer and convert from hex string to int
+                char hexCRC[3];
+                strncpy(hexCRC, &boomBuffer[boomBufferLength - 3], 2);
+                hexCRC[2] = '\0';  // null-terminate the string
+                int expectedCRC = (int)strtol(hexCRC, NULL, 16);
+            
+                if (calcCRC != expectedCRC) {
+                  #ifdef BOOMDATADEBUG
+                  Serial.println("BOOM: Bad CRC");
+                  Serial.print(expectedCRC,HEX);
+                  Serial.print(',');
+                  Serial.println(calcCRC);
+                  #endif
+                } else
+            #endif
+                      {
+                       // Split the string and convert to integers
+                        int parseArrayInt[4] = {0, 0, 0, 0};
+                        char *token = strtok(boomBuffer + 21, ",");
+                        int parseArrayIndex = 0;
+                        while (token != NULL && parseArrayIndex < 4) {
+                          parseArrayInt[parseArrayIndex] = atoi(token);
+                          token = strtok(NULL, ",");
+                          parseArrayIndex++;
+                        }
+                        
+                        // Continue processing as before
+                        boomStatic=BOOM_STATIC_CALC(parseArrayInt[0]);
+                        boomDynamic=BOOM_DYNAMIC_CALC(parseArrayInt[1]);                    
+                        boomIAS=0;
+                        boomAlpha=BOOM_ALPHA_CALC(parseArrayInt[2]);
+                        boomBeta=BOOM_BETA_CALC(parseArrayInt[3]);   
+          
+          #ifdef BOOMDATADEBUG
+                        Serial.printf("BOOM: boomStatic %.2f, boomDynamic %.2f, boomAlpha %.2f, boomBeta %.2f, boomIAS %.2f\n", boomStatic, boomDynamic, boomAlpha, boomBeta, boomIAS);
+          #endif
+                      }
+          }
+          boomBufferLength = 0;
+        } else {
+               boomBuffer[boomBufferLength++] = serialBoomChar;
+               }
+      }
+      
+      #ifdef BOOMDATADEBUG
+      else {
+        Serial.print(serialBoomChar);
+      }
+      #endif
+    }
+  }
+}
+
+
+
+void readBoomSerialOld()
 {
   if (readBoom)
   {

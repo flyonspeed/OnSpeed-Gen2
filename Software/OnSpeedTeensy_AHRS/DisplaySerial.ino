@@ -10,18 +10,19 @@ if (serialOutPort!="NONE" && millis()-serialoutLastUpdate>100) // update every 1
               int percentLift;
               float displayAOA;
               float displayIAS;
-              float smoothingAlpha=2.0/(serialDisplaySmoothing+1);
+              float smoothingAlphaLat=2.0/(serialDisplaySmoothingLat+1);
+              float smoothingAlphaVert=2.0/(serialDisplaySmoothingVert+1);
               int displayVerticalG;
 #ifdef SPHERICAL_PROBE
   displayIAS=efisIAS;
 #else
   displayIAS=IAS;
 #endif      
-              if (PaltSmoothed==0) PaltSmoothed=kalmanAlt*M2FT; else PaltSmoothed=kalmanAlt*M2FT * smoothingAlpha/10+ (1-smoothingAlpha/10)*PaltSmoothed; // increased smoothing needed
-              VerticalGSmoothed=aVert * smoothingAlpha+ (1-smoothingAlpha)*VerticalGSmoothed;
+              if (PaltSmoothed==0) PaltSmoothed=kalmanAlt*M2FT; else PaltSmoothed=kalmanAlt*M2FT * smoothingAlphaVert/10+ (1-smoothingAlphaVert/10)*PaltSmoothed; // increased smoothing needed
+              VerticalGSmoothed=aVertCorr * smoothingAlphaVert+ (1-smoothingAlphaVert)*VerticalGSmoothed;
               displayVerticalG=ceil(VerticalGSmoothed * 10.0);
               
-              LateralGSmoothed=aLat * smoothingAlpha+ (1-smoothingAlpha)*LateralGSmoothed;
+              LateralGSmoothed=aLatCorr * smoothingAlphaLat+ (1-smoothingAlphaLat)*LateralGSmoothed;
               // don't output precentLift at low speeds.
               if (displayIAS>=muteAudioUnderIAS)
                   {
@@ -113,7 +114,7 @@ if (serialOutPort!="NONE" && millis()-serialoutLastUpdate>100) // update every 1
               //serialCRC= serialCRC & 0xFF;
               if (serialOutPort=="Serial5")
                   {                 
-                  Serial5.print(serialOutString); 
+                  Serial5.print(serialOutString);
                   //Serial5.print(serialCRC,HEX);
                   Serial5.printf("%02X",serialCRC);
                   Serial5.println();
@@ -138,7 +139,6 @@ if (serialOutPort!="NONE" && millis()-serialoutLastUpdate>100) // update every 1
                                       Serial1.printf("%02X",serialCRC);
                                       Serial1.println();
                                       }
-                  
     serialoutLastUpdate=millis();                    
     }
 }

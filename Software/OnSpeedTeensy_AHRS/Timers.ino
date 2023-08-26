@@ -1,5 +1,6 @@
 void timersOff()
 {
+if (timersDisabled) return;
 //turn off Timers;
 Serial.println("Timers OFF");
 IMUTimer.end();
@@ -16,6 +17,7 @@ while (millis()-delayTimer<250)
 
 void timersOn()
 {
+ if (!timersDisabled) return;
 Serial.println("Timers ON");
 // wait before starting timers
 unsigned long delayTimer=millis();

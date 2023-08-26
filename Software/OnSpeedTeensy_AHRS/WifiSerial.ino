@@ -21,7 +21,7 @@ if (Serial4.available()>0)
 //$AUDIOTEST
 serialWifiCmdChar = Serial4.read();
 Serial.print(serialWifiCmdChar);
-if (serialWifiCmdBufferSize >=3071)
+if (serialWifiCmdBufferSize >=3070)
       {       
       serialWifiCmdBufferSize=0; // don't let the command buffer overflow
       }
@@ -259,11 +259,13 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                }
                                                                           //sdAvailable=Sd.begin(SdioConfig(FIFO_SDIO));
                                                                           if (!sdAvailable) Serial.println("SD card couldn't be initialized");
-                                                                          String configString="";
+                                                                          configString="";
                                                                           configurationToString(configString);
                                                                           saveConfigurationToFile(configFilename,configString);
+                                                                          configString="";
                                                                           // card is empty create new log file
-                                                                          createLogFile();                                                                                                                                                 
+                                                                          createLogFile();
+                                                                                                                                                                                                                           
                                                                           }                                                                    
                                                                  }  
                                                                                                                     
@@ -365,29 +367,31 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                     _softRestart();
                                                                                                                     } else
                                                                                                                           if (strstr(serialWifiCmdBuffer, "$SENDCONFIGSTRING"))                                                                    
-                                                                                                                              {
-//                                                                                                                              timersOff();                                                                                                                            
-                                                                                                                              checkWatchdog();                                                                                                       
-                                                                                                                              String configString="";
+                                                                                                                              {                                                                                                                              
+                                                                                                                              sdLogging=false; // turn off sdLogging so we don't overflow the log buffer while sending serial data
+                                                                                                                              timersOff();                                                                                                                                                                                                  
+                                                                                                                              checkWatchdog();
+                                                                                                                              configString="";                                                                                                       
                                                                                                                               configurationToString(configString);
                                                                                                                               checkWatchdog();
                                                                                                                               // add CRC to configString
-                                                                                                                              addCRC(configString);                                                                                                                              
+                                                                                                                              addCRC(configString);                                                                                                               
                                                                                                                               sendWifiSerialString(configString);
                                                                                                                               Serial.println("Configstring sent to Wifi");                                                                                                                                                                                                                                                            
-  //                                                                                                                            timersOn();
-                                                                                                                                                                                                                                                                                                                                                                                    
+                                                                                                                              timersOn();
+                                                                                                                              configString="";                                                                                                                                                                                                                                                      
                                                                                                                               checkWatchdog();
+                                                                                                                              sdLogging=true;                                                                                                                              
                                                                                                                               } else
                                                                                                                                     if (strstr(serialWifiCmdBuffer, "$SAVECONFIGSTRING"))
                                                                                                                                           {
-                                                                                                                                          //timersOff();
-                                                                                                                                          checkWatchdog();
                                                                                                                                           sdLogging=false;  
+                                                                                                                                          timersOff();
+                                                                                                                                          checkWatchdog();                                                                                                                                            
                                                                                                                                           // saveConfigString                                                                                                                                          
-                                                                                                                                          String configString=String(serialWifiCmdBuffer);
-                                                                                                                                          String checksumString=getConfigValue(configString,"CHECKSUM");                                                                                                                                         
-                                                                                                                                          String configContent=getConfigValue(configString,"CONFIG");
+                                                                                                                                          configString=String(serialWifiCmdBuffer);
+                                                                                                                                          checksumString=getConfigValue(configString,"CHECKSUM");                                                                                                                                         
+                                                                                                                                          configContent=getConfigValue(configString,"CONFIG");
                                                                                                                                            // calculate checksum
                                                                                                                                           int16_t calcCRC=0;
                                                                                                                                           for (unsigned int i=0;i<configContent.length();i++) calcCRC+=configContent[i];
@@ -411,8 +415,12 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                       Serial.println("CONFIG checksum failed");
                                                                                                                                                       }
                                                                                                                                            checkWatchdog();
-                                                                                                                                          
-                                                                                                                                          //timersOn();
+                                                                                                                                          // clean up after the strings 
+                                                                                                                                          configString="";
+                                                                                                                                          checksumString="";
+                                                                                                                                          configContent="";
+                                                                                                                                          timersOn();
+                                                                                                                                          sdLogging=true;
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
                                                                                                                                           } else
                                                                                                                                                 if (strstr(serialWifiCmdBuffer, "$AOA"))
@@ -435,14 +443,18 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                     } else
                                                                                                                                                         if (strstr(serialWifiCmdBuffer, "$SENDDEFAULTCONFIGSTRING"))                                                                            
                                                                                                                                                             {
-                                                                                                                                                            //timersOff();  
+                                                                                                                                                            sdLogging=false;
+                                                                                                                                                            timersOff();                                                                                                                                                              
                                                                                                                                                             Serial.println("Wifi: Default Configstring request from wifi");                                                                                                                                                            
-                                                                                                                                                            String configString=String(DEFAULT_CONFIG);
+                                                                                                                                                            configString=String(DEFAULT_CONFIG);
                                                                                                                                                             // add CRC to configString
                                                                                                                                                             addCRC(configString);
                                                                                                                                                             checkWatchdog();                                                                                                                             
                                                                                                                                                             sendWifiSerialString(configString);
-                                                                                                                                                            //timersOn();    
+                                                                                                                                                            checkWatchdog();
+                                                                                                                                                            configString="";
+                                                                                                                                                            timersOn(); 
+                                                                                                                                                            sdLogging=true;    
                                                                                                                                                             } else
                                                                                                                                                                 if (strstr(serialWifiCmdBuffer, "$SENSORCONFIG"))
                                                                                                                                                                     {
@@ -450,8 +462,9 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                                      float aircraftPitch=stringToFloat(getConfigValue(serialWifiCmdBuffer,"AIRCRAFTPITCH"));
                                                                                                                                                                      float aircraftRoll=stringToFloat(getConfigValue(serialWifiCmdBuffer,"AIRCRAFTROLL"));
                                                                                                                                                                      float aircraftPAlt=stringToFloat(getConfigValue(serialWifiCmdBuffer,"AIRCRAFTPALT"));
-                                                                                                                                                                     timersOff();
                                                                                                                                                                      sdLogging=false;
+                                                                                                                                                                     timersOff();
+
                                                                                                                                                                      Serial.println("Wifi: SensorConfig request");
                                                                                                                                                                      // sample sensors
                                                                                                                                                                      long P45Total=0;
@@ -463,8 +476,7 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                                      float gxTotal=0.00;
                                                                                                                                                                      float gyTotal=0.00;
                                                                                                                                                                      float gzTotal=0.00;
-                                                                                                                                                                     int sensorReadCount=150;
-                                                                                                                                                                     timersOff();                            
+                                                                                                                                                                     int sensorReadCount=150;                                                                                                                                                                                                
                                                                                                                                                                      for (int i=0;i<sensorReadCount;i++)
                                                                                                                                                                           {
                                                                                                                                                                           checkWatchdog();
@@ -481,8 +493,7 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                                           gzTotal+=gz;
                                                                                                                                                                           delayMicroseconds(4808);                                                                                                                                                                         
                                                                                                                                                                           }
-                                                                                                                                                                       timersOn();    
-                                                                    
+                                                                                                                                                                       
                                                                                                                                                                      // calculate pitch from averaged accelerometer reading
                                                                                                                                                                      float calcPitch=atan2((aFwdTotal/sensorReadCount), sqrt((aLatTotal/sensorReadCount)* (aLatTotal/sensorReadCount) + (aVertTotal/sensorReadCount) *(aVertTotal/sensorReadCount))) * 57.2957;
                                                                                                                                                                      float calcRoll =-atan2((aLatTotal/sensorReadCount), sqrt((aFwdTotal/sensorReadCount)* (aFwdTotal/sensorReadCount) + (aVertTotal/sensorReadCount) *(aVertTotal/sensorReadCount))) * 57.2957;                                                                                                                                                                     
@@ -512,13 +523,15 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                                      resultString+=" measured Roll: "+ String(calcRoll)+"<br>"; 
                                                                                                                                                                      resultString+=" rollBias: "+ String(rollBias)+"<br>"; 
                                                                                                                                                                      resultString+=" staticBias: "+ String(pStaticBias)+"<br>";                                                                                                                                                                     
-                                                                                                                                                                     String configString="";
+                                                                                                                                                                     configString="";
                                                                                                                                                                      configurationToString(configString);
                                                                                                                                                                      saveConfigurationToFile(configFilename,configString);
                                                                                                                                                                      sendWifiSerialString("<SENSORCONFIG>"+resultString+"</SENSORCONFIG>");                                                                                                                                                                     
                                                                                                                                                                      Serial.println("Wifi: SensorConfig complete.");
                                                                                                                                                                      timersOn();
-                                                                                                                                                                     sdLogging=true;                                                                                                                                                                
+                                                                                                                                                                     sdLogging=true;
+                                                                                                                                                                     configString="";
+                                                                                                                                                                                                                                                                                                                                     
                                                                                                                                                                     } else
                                                                                                                                                                             if (strstr(serialWifiCmdBuffer, "$PITCHROLLALT"))
                                                                                                                                                                                         {
@@ -527,8 +540,10 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                                                         float aLatTotal=0.00;
                                                                                                                                                                                         float aFwdTotal=0.00;
                                                                                                                                                                                         long PStaticTotal=0;
-                                                                                                                                                                                        Serial.println("Wifi: PitchRollAlt request");                                                                                                                                                                                          
-                                                                                                                                                                                        timersOff();                                                                                                                                                                                       
+                                                                                                                                                                                        Serial.println("Wifi: PitchRollAlt request");                                                                                                                                                                                                                                                                                                                                                                                  
+                                                                                                                                                                                        sdLogging=false; 
+                                                                                                                                                                                        timersOff(); 
+                                                                                                                                                                                                                                                                                                                                                                             
                                                                                                                                                                                         for (int i=0;i<sensorReadCount;i++)
                                                                                                                                                                                             {                                                                                                                                                                                            
                                                                                                                                                                                             checkWatchdog();
@@ -537,15 +552,17 @@ if (serialWifiCmdBufferSize >=3071)
                                                                                                                                                                                             aLatTotal+=getAccelForAxis(lateralGloadAxis);
                                                                                                                                                                                             aFwdTotal+=getAccelForAxis(forwardGloadAxis);
                                                                                                                                                                                             PStaticTotal+=GetStaticPressure();
-                                                                                                                                                                                            delayMicroseconds(4808); // 238Hz
+                                                                                                                                                                                            delayMicroseconds(4808); // 208Hz
                                                                                                                                                                                             }
-                                                                                                                                                                                        timersOn();     
+                                                                                                                                                                                             
                                                                                                                                                                                         // calculate pitch from averaged accelerometer reading                                                                                                                                                                                       
                                                                                                                                                                                         float calcPitchAngle=calcPitch(aFwdTotal/sensorReadCount, aLatTotal/sensorReadCount, aVertTotal/sensorReadCount);
                                                                                                                                                                                         float calcRollAngle=calcRoll(aFwdTotal/sensorReadCount, aLatTotal/sensorReadCount, aVertTotal/sensorReadCount);
                                                                                                                                                                                         float PStatic= float((PStaticTotal/sensorReadCount));
                                                                                                                                                                                         Palt=145366.45*(1-pow((PStatic+pStaticBias)/1013.25,0.190284)); //Pstatic in milliBars,Palt in feet
                                                                                                                                                                                         Serial4.printf("<RESPONSE><PITCH>%.2f</PITCH><ROLL>%.2f</ROLL><PALT>%.2f</PALT></RESPONSE>",calcPitchAngle,-calcRollAngle,Palt);                                                                                                                                                                                     
+                                                                                                                                                                                        timersOn();
+                                                                                                                                                                                        sdLogging=true;
                                                                                                                                                                                         }  else
                                                                                                                                                                                               if (strstr(serialWifiCmdBuffer, "$VERSION"))
                                                                                                                                                                                                         {

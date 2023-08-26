@@ -95,7 +95,7 @@ void datalogRingBufferAdd(char * logBuffer)
 if ((LOG_RINGBUFFER_SIZE - datalogBytesAvailable) < strlen(logBuffer))
       {
       // ring buffer full;
-      //Serial.print("ring buffer full");
+      Serial.println("ring buffer full");
       return;
       }
 int size_part1=minimum(strlen(logBuffer), LOG_RINGBUFFER_SIZE - datalogRingBufferEnd);
