@@ -8,7 +8,8 @@
 //      and
 //      https://github.com/flyonspeed/OnSpeed-Gen2/
 
-#define VERSION "3.3.7f" // 7/22/23 separated serial display smoothing to Lateral & Vertical G.
+#define VERSION "3.3.7g" // 10/5/23 Corrected Forward/Left orientation IMU axis defintion
+// "3.3.7f" // 7/22/23 separated serial display smoothing to Lateral & Vertical G.
 //"3.3.7e" // 7/16/2023 fixed log replay so it works with different log formats
 //"3.3.7d" // 7/08/2023 fixed lateral/vertical G issue. Fixed panel control button not working. Some attempt to fix reboot on config load/save
 //"3.3.7c" // 7/03/2023 fixed AHRS issue (had a TAS double unit conversion), fixed wifi stray dot issue
