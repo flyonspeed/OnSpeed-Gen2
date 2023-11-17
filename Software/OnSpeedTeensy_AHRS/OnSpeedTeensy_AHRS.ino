@@ -3,7 +3,7 @@
 //For best performance compile with Tool > Optimize > Fastest with LTO. Gives 1.6x performance gain vs default setting
 
 // Mac Ventura And Arduino 2.0 ready. Use this Teensyduino for Mac:
-https://www.pjrc.com/teensy/td_158/Teensyduino_MacOS_Catalina.zip
+//https://www.pjrc.com/teensy/td_158/Teensyduino_MacOS_Catalina.zip
 
 ////////////////////////////////////////////////////
 // More details at
@@ -138,7 +138,7 @@ https://www.pjrc.com/teensy/td_158/Teensyduino_MacOS_Catalina.zip
 #endif
 
 // OAT sensor available
-#define OAT_AVAILABLE  // DS18B20 sensor on pin 9
+//#define OAT_AVAILABLE  // DS18B20 sensor on pin 9
 
 // boom curves
 //#define BOOM_ALPHA_CALC(x)      7.0918*pow(10,-13)*x*x*x*x - 1.1698*pow(10,-8)*x*x*x + 7.0109*pow(10,-5)*x*x - 0.21624*x + 310.21; //degrees
