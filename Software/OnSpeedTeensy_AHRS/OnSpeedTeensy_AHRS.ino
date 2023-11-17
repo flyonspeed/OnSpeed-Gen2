@@ -1,6 +1,9 @@
 // to be compiled on Arduino 1.8.16 & Teensyduino 1.55
 //*** IMPORTANT ***
-//For best performance compile with Tool > Optimize > Fastest with LTE. Gives 1.6x performance gain vs default setting
+//For best performance compile with Tool > Optimize > Fastest with LTO. Gives 1.6x performance gain vs default setting
+
+// Mac Ventura And Arduino 2.0 ready. Use this Teensyduino for Mac:
+https://www.pjrc.com/teensy/td_158/Teensyduino_MacOS_Catalina.zip
 
 ////////////////////////////////////////////////////
 // More details at

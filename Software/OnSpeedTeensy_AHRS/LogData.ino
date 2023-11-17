@@ -58,7 +58,7 @@ void createLogFile()
         while (Sd.exists(filenameSensor))
               {
               fileCount++;  
-              sprintf(filenameSensor,"log_%d.csv",fileCount);              
+              snprintf(filenameSensor, sizeof(filenameSensor), "log_%d.csv", fileCount);   
               }
         Serial.print("Sensor log file:"); Serial.println(filenameSensor);        
 
